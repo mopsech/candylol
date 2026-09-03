@@ -1,10 +1,11 @@
--- Violence District Mobile GUI | Full Recode
--- Оптимизировано для мобильных устройств и ПК
+-- Violence District Mobile GUI | Full Professional Recode
+-- Черно-белая расцветка с Icon Pack
+-- Полнофункциональный ColorPicker и выпадающие списки
 
 --[[
-    VIOLENCE DISTRICT HUB
-    Версия: 3.0 Mobile
-    Создано специально для мобильных устройств
+    VIOLENCE DISTRICT HUB v4.0
+    Профессиональная версия для мобильных устройств
+    Черно-белый дизайн с Material Icons
 ]]
 
 -- Сервисы
@@ -16,7 +17,6 @@ local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 
 -- Глобальные настройки
 _G.VDSettings = _G.VDSettings or {
@@ -27,25 +27,23 @@ _G.VDSettings = _G.VDSettings or {
             Survivors = { Enabled = true, Aura = true, Health = true, Hooks = true, Name = true }
         },
         Objects = {
-            Generators = { Enabled = true, Progress = true, RepairSpeed = true, ETA = true, Distance = true },
+            Generators = { Enabled = true, Progress = true, RepairSpeed = true, ETA = true },
             Hooks = { Enabled = false },
             Pallets = { Enabled = false },
             Windows = { Enabled = false },
-            Gates = { Enabled = true, Progress = true }
+            Gates = { Enabled = true }
         },
         Settings = {
             Style = "Standard",
             MaxDistance = 1000,
             DistanceFade = false,
-            Tracers = false,
-            Radar = false
+            Tracers = false
         },
         Colors = {
-            Killer = Color3.fromRGB(255, 42, 109),
-            SurvivorHealthy = Color3.fromRGB(0, 255, 0),
-            SurvivorInjured = Color3.fromRGB(255, 165, 0),
-            SurvivorDowned = Color3.fromRGB(255, 0, 0),
-            Generators = Color3.fromRGB(255, 255, 0)
+            Killer = Color3.fromRGB(255, 255, 255),
+            SurvivorHealthy = Color3.fromRGB(200, 200, 200),
+            SurvivorInjured = Color3.fromRGB(150, 150, 150),
+            Generators = Color3.fromRGB(220, 220, 220)
         }
     },
     Farm = {
@@ -53,30 +51,26 @@ _G.VDSettings = _G.VDSettings or {
         AutoSkillCheck = false,
         SkillCheckMode = "Perfect",
         PerfectChance = 100,
-        NoSkillChecks = false,
-        AutoKiller = false
+        NoSkillChecks = false
     },
     Modifiers = {
         SpeedBoost = false,
         SpeedMultiplier = 1.5,
         InstantHeal = false,
-        AutoMoonwalk = false,
-        RainbowCharacter = false
+        AutoMoonwalk = false
     },
     Combat = {
         AutoParry = false,
         ParryRange = 15,
         ParryDelay = "Instant",
         GeneralAimbot = false,
-        AimbotFOV = 200,
-        ShowFOVCircle = false
+        AimbotFOV = 200
     },
     Visuals = {
         RTX = false,
         FullBright = false,
         NoFog = false,
-        Crosshair = false,
-        CrosshairSize = 10
+        Crosshair = false
     },
     Config = {
         Premium = false,
@@ -84,27 +78,44 @@ _G.VDSettings = _G.VDSettings or {
     }
 }
 
--- Цветовая схема
-local Colors = {
-    Background = Color3.fromRGB(10, 10, 10),
-    Card = Color3.fromRGB(26, 26, 26),
-    Accent = Color3.fromRGB(255, 42, 109),
-    TextPrimary = Color3.fromRGB(255, 255, 255),
-    TextSecondary = Color3.fromRGB(160, 160, 176),
-    Border = Color3.fromRGB(40, 40, 40),
-    Success = Color3.fromRGB(0, 255, 0),
-    Warning = Color3.fromRGB(255, 165, 0),
-    Error = Color3.fromRGB(255, 0, 0)
+-- Черно-белая цветовая схема
+local Theme = {
+    Background = Color3.fromRGB(15, 15, 15),
+    Card = Color3.fromRGB(25, 25, 25),
+    CardHover = Color3.fromRGB(35, 35, 35),
+    Primary = Color3.fromRGB(255, 255, 255),
+    Secondary = Color3.fromRGB(180, 180, 180),
+    Tertiary = Color3.fromRGB(120, 120, 120),
+    Border = Color3.fromRGB(45, 45, 45),
+    Disabled = Color3.fromRGB(60, 60, 60)
+}
+
+-- Material Design Icons (rbxassetid)
+local Icons = {
+    Eye = "rbxassetid://3926305904",
+    Farm = "rbxassetid://3926307971",
+    Settings = "rbxassetid://3926305904",
+    Combat = "rbxassetid://3926305904",
+    Palette = "rbxassetid://3926305904",
+    Save = "rbxassetid://3926305904",
+    Close = "rbxassetid://3926305904",
+    Check = "rbxassetid://3926305904",
+    ChevronDown = "rbxassetid://3926305904",
+    ChevronRight = "rbxassetid://3926305904",
+    Circle = "rbxassetid://3926305904"
 }
 
 -- Утилиты
 local Utility = {}
 
-function Utility:Tween(object, properties, duration)
-    duration = duration or 0.3
+function Utility:Tween(object, properties, duration, style, direction)
     local tween = TweenService:Create(
         object,
-        TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        TweenInfo.new(
+            duration or 0.2,
+            style or Enum.EasingStyle.Quad,
+            direction or Enum.EasingDirection.Out
+        ),
         properties
     )
     tween:Play()
@@ -112,9 +123,7 @@ function Utility:Tween(object, properties, duration)
 end
 
 function Utility:MakeDraggable(frame, handle)
-    local dragging = false
-    local dragInput, mousePos, framePos
-
+    local dragging, dragInput, mousePos, framePos
     handle = handle or frame
 
     handle.InputBegan:Connect(function(input)
@@ -122,12 +131,6 @@ function Utility:MakeDraggable(frame, handle)
             dragging = true
             mousePos = input.Position
             framePos = frame.Position
-
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
         end
     end)
 
@@ -138,54 +141,73 @@ function Utility:MakeDraggable(frame, handle)
     end)
 
     UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
+        if dragging and input == dragInput then
             local delta = input.Position - mousePos
-            Utility:Tween(frame, {
-                Position = UDim2.new(
-                    framePos.X.Scale,
-                    framePos.X.Offset + delta.X,
-                    framePos.Y.Scale,
-                    framePos.Y.Offset + delta.Y
-                )
-            }, 0.1)
+            frame.Position = UDim2.new(
+                framePos.X.Scale,
+                framePos.X.Offset + delta.X,
+                framePos.Y.Scale,
+                framePos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
         end
     end)
 end
 
-function Utility:CreateCorner(parent, radius)
+function Utility:Corner(parent, radius)
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius or 8)
+    corner.CornerRadius = UDim.new(0, radius or 6)
     corner.Parent = parent
     return corner
 end
 
-function Utility:CreateStroke(parent, color, thickness)
+function Utility:Stroke(parent, color, thickness)
     local stroke = Instance.new("UIStroke")
-    stroke.Color = color or Colors.Border
+    stroke.Color = color or Theme.Border
     stroke.Thickness = thickness or 1
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     stroke.Parent = parent
     return stroke
 end
 
-function Utility:CreatePadding(parent, all)
+function Utility:Padding(parent, all)
     local padding = Instance.new("UIPadding")
-    padding.PaddingTop = UDim.new(0, all or 0)
-    padding.PaddingBottom = UDim.new(0, all or 0)
-    padding.PaddingLeft = UDim.new(0, all or 0)
-    padding.PaddingRight = UDim.new(0, all or 0)
+    if type(all) == "table" then
+        padding.PaddingTop = UDim.new(0, all.Top or 0)
+        padding.PaddingBottom = UDim.new(0, all.Bottom or 0)
+        padding.PaddingLeft = UDim.new(0, all.Left or 0)
+        padding.PaddingRight = UDim.new(0, all.Right or 0)
+    else
+        padding.PaddingTop = UDim.new(0, all or 0)
+        padding.PaddingBottom = UDim.new(0, all or 0)
+        padding.PaddingLeft = UDim.new(0, all or 0)
+        padding.PaddingRight = UDim.new(0, all or 0)
+    end
     padding.Parent = parent
     return padding
 end
 
--- Создание GUI
+function Utility:Icon(parent, iconId, size)
+    local icon = Instance.new("ImageLabel")
+    icon.Size = UDim2.new(0, size or 20, 0, size or 20)
+    icon.BackgroundTransparency = 1
+    icon.Image = iconId
+    icon.ImageColor3 = Theme.Primary
+    icon.Parent = parent
+    return icon
+end
+
+-- Создание ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ViolenceDistrictHub"
+ScreenGui.Name = "ViolenceDistrictHubV4"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.IgnoreGuiInset = true
 
--- Защита GUI
 if syn and syn.protect_gui then
     syn.protect_gui(ScreenGui)
     ScreenGui.Parent = CoreGui
@@ -195,322 +217,282 @@ else
     ScreenGui.Parent = CoreGui
 end
 
--- Главный контейнер
-local MainContainer = Instance.new("Frame")
-MainContainer.Name = "MainContainer"
-MainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
-MainContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
-MainContainer.Size = UDim2.new(0, 420, 0, 580)
-MainContainer.BackgroundColor3 = Colors.Background
-MainContainer.BorderSizePixel = 0
-MainContainer.Parent = ScreenGui
-Utility:CreateCorner(MainContainer, 16)
+-- Главный контейнер (уменьшенный размер)
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+Main.Size = UDim2.new(0, 360, 0, 480)
+Main.BackgroundColor3 = Theme.Background
+Main.BorderSizePixel = 0
+Main.ClipDescendants = true
+Main.Parent = ScreenGui
+Utility:Corner(Main, 12)
+Utility:Stroke(Main, Theme.Border, 1)
 
--- Тень для главного контейнера
+-- Тень
 local Shadow = Instance.new("ImageLabel")
 Shadow.Name = "Shadow"
 Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
 Shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-Shadow.Size = UDim2.new(1, 40, 1, 40)
+Shadow.Size = UDim2.new(1, 30, 1, 30)
 Shadow.BackgroundTransparency = 1
 Shadow.Image = "rbxassetid://5554236805"
 Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-Shadow.ImageTransparency = 0.6
+Shadow.ImageTransparency = 0.7
 Shadow.ScaleType = Enum.ScaleType.Slice
 Shadow.SliceCenter = Rect.new(23, 23, 277, 277)
-Shadow.ZIndex = 0
-Shadow.Parent = MainContainer
+Shadow.ZIndex = -1
+Shadow.Parent = Main
 
--- Верхняя панель (Header)
-local Header = Instance.new("Frame")
-Header.Name = "Header"
-Header.Size = UDim2.new(1, 0, 0, 100)
-Header.BackgroundTransparency = 1
-Header.Parent = MainContainer
+-- Топ бар
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 45)
+TopBar.BackgroundColor3 = Theme.Card
+TopBar.BorderSizePixel = 0
+TopBar.Parent = Main
 
--- Логотип
-local LogoFrame = Instance.new("Frame")
-LogoFrame.Name = "LogoFrame"
-LogoFrame.AnchorPoint = Vector2.new(0.5, 0)
-LogoFrame.Position = UDim2.new(0.5, 0, 0, 15)
-LogoFrame.Size = UDim2.new(0, 60, 0, 60)
-LogoFrame.BackgroundColor3 = Colors.Card
-LogoFrame.BorderSizePixel = 0
-LogoFrame.Parent = Header
-Utility:CreateCorner(LogoFrame, 30)
+local TopBarBottom = Instance.new("Frame")
+TopBarBottom.Size = UDim2.new(1, 0, 0, 12)
+TopBarBottom.Position = UDim2.new(0, 0, 1, -12)
+TopBarBottom.BackgroundColor3 = Theme.Card
+TopBarBottom.BorderSizePixel = 0
+TopBarBottom.Parent = TopBar
 
-local Logo = Instance.new("ImageLabel")
-Logo.Name = "Logo"
-Logo.Size = UDim2.new(1, -10, 1, -10)
-Logo.Position = UDim2.new(0, 5, 0, 5)
+-- Логотип текстовый
+local Logo = Instance.new("TextLabel")
+Logo.Position = UDim2.new(0, 12, 0, 0)
+Logo.Size = UDim2.new(0, 150, 1, 0)
 Logo.BackgroundTransparency = 1
-Logo.Image = "https://raw.githubusercontent.com/mopsech/candyhub/main/candy.png"
-Logo.ScaleType = Enum.ScaleType.Fit
-Logo.Parent = LogoFrame
-
--- Заглушка для логотипа
-local LogoText = Instance.new("TextLabel")
-LogoText.Size = UDim2.new(1, 0, 1, 0)
-LogoText.BackgroundTransparency = 1
-LogoText.Text = "VD"
-LogoText.TextColor3 = Colors.Accent
-LogoText.Font = Enum.Font.GothamBold
-LogoText.TextSize = 28
-LogoText.Visible = false
-LogoText.Parent = LogoFrame
-
--- Проверка загрузки логотипа
-task.spawn(function()
-    task.wait(3)
-    if Logo.Image == "" or not Logo.IsLoaded then
-        LogoText.Visible = true
-    end
-end)
-
--- Заголовок
-local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.AnchorPoint = Vector2.new(0.5, 0)
-Title.Position = UDim2.new(0.5, 0, 0, 78)
-Title.Size = UDim2.new(0.8, 0, 0, 16)
-Title.BackgroundTransparency = 1
-Title.Text = "VIOLENCE DISTRICT"
-Title.TextColor3 = Colors.TextPrimary
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
-Title.Parent = Header
+Logo.Text = "VIOLENCE"
+Logo.TextColor3 = Theme.Primary
+Logo.Font = Enum.Font.GothamBold
+Logo.TextSize = 16
+Logo.TextXAlignment = Enum.TextXAlignment.Left
+Logo.Parent = TopBar
 
 -- Версия
 local Version = Instance.new("TextLabel")
-Version.Name = "Version"
-Version.AnchorPoint = Vector2.new(0.5, 0)
-Version.Position = UDim2.new(0.5, 0, 0, 95)
-Version.Size = UDim2.new(0.8, 0, 0, 12)
+Version.Position = UDim2.new(0, 80, 0, 0)
+Version.Size = UDim2.new(0, 80, 1, 0)
 Version.BackgroundTransparency = 1
-Version.Text = "v3.0 Mobile | Premium"
-Version.TextColor3 = Colors.TextSecondary
+Version.Text = "v4.0"
+Version.TextColor3 = Theme.Tertiary
 Version.Font = Enum.Font.Gotham
-Version.TextSize = 11
-Version.Parent = Header
+Version.TextSize = 10
+Version.TextXAlignment = Enum.TextXAlignment.Left
+Version.Parent = TopBar
 
 -- Кнопка закрытия
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
-CloseButton.Position = UDim2.new(1, -45, 0, 10)
-CloseButton.Size = UDim2.new(0, 35, 0, 35)
-CloseButton.BackgroundColor3 = Colors.Card
-CloseButton.BorderSizePixel = 0
-CloseButton.Text = "✕"
-CloseButton.TextColor3 = Colors.TextPrimary
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextSize = 18
-CloseButton.AutoButtonColor = false
-CloseButton.Parent = Header
-Utility:CreateCorner(CloseButton, 8)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.AnchorPoint = Vector2.new(1, 0.5)
+CloseBtn.Position = UDim2.new(1, -8, 0.5, 0)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.BackgroundColor3 = Theme.Card
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Text = ""
+CloseBtn.AutoButtonColor = false
+CloseBtn.Parent = TopBar
+Utility:Corner(CloseBtn, 6)
 
-CloseButton.MouseEnter:Connect(function()
-    Utility:Tween(CloseButton, {BackgroundColor3 = Colors.Error})
+local CloseIcon = Instance.new("TextLabel")
+CloseIcon.Size = UDim2.new(1, 0, 1, 0)
+CloseIcon.BackgroundTransparency = 1
+CloseIcon.Text = "×"
+CloseIcon.TextColor3 = Theme.Primary
+CloseIcon.Font = Enum.Font.GothamBold
+CloseIcon.TextSize = 20
+CloseIcon.Parent = CloseBtn
+
+CloseBtn.MouseEnter:Connect(function()
+    Utility:Tween(CloseBtn, {BackgroundColor3 = Theme.CardHover})
 end)
 
-CloseButton.MouseLeave:Connect(function()
-    Utility:Tween(CloseButton, {BackgroundColor3 = Colors.Card})
+CloseBtn.MouseLeave:Connect(function()
+    Utility:Tween(CloseBtn, {BackgroundColor3 = Theme.Card})
 end)
 
-CloseButton.MouseButton1Click:Connect(function()
-    Utility:Tween(MainContainer, {Size = UDim2.new(0, 0, 0, 0)}, 0.3)
+CloseBtn.MouseButton1Click:Connect(function()
+    Utility:Tween(Main, {Size = UDim2.new(0, 0, 0, 0)}, 0.3)
     task.wait(0.3)
     ScreenGui.Enabled = false
 end)
 
--- Контейнер для контента
-local ContentFrame = Instance.new("Frame")
-ContentFrame.Name = "ContentFrame"
-ContentFrame.Position = UDim2.new(0, 10, 0, 110)
-ContentFrame.Size = UDim2.new(1, -20, 1, -180)
-ContentFrame.BackgroundTransparency = 1
-ContentFrame.Parent = MainContainer
+-- Контент область
+local Content = Instance.new("Frame")
+Content.Name = "Content"
+Content.Position = UDim2.new(0, 0, 0, 45)
+Content.Size = UDim2.new(1, 0, 1, -100)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
 
 -- ScrollingFrame для контента
 local ContentScroll = Instance.new("ScrollingFrame")
-ContentScroll.Name = "ContentScroll"
 ContentScroll.Size = UDim2.new(1, 0, 1, 0)
 ContentScroll.BackgroundTransparency = 1
 ContentScroll.BorderSizePixel = 0
-ContentScroll.ScrollBarThickness = 3
-ContentScroll.ScrollBarImageColor3 = Colors.Accent
+ContentScroll.ScrollBarThickness = 2
+ContentScroll.ScrollBarImageColor3 = Theme.Primary
 ContentScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 ContentScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-ContentScroll.Parent = ContentFrame
+ContentScroll.Parent = Content
 
--- Layout для контента
-local ContentLayout = Instance.new("UIListLayout")
-ContentLayout.Padding = UDim.new(0, 8)
-ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ContentLayout.Parent = ContentScroll
+local ContentList = Instance.new("UIListLayout")
+ContentList.Padding = UDim.new(0, 6)
+ContentList.SortOrder = Enum.SortOrder.LayoutOrder
+ContentList.Parent = ContentScroll
 
--- Разделитель между контентом и вкладками
-local Divider = Instance.new("Frame")
-Divider.Name = "Divider"
-Divider.Position = UDim2.new(0, 0, 1, -71)
-Divider.Size = UDim2.new(1, 0, 0, 1)
-Divider.BackgroundColor3 = Colors.Border
-Divider.BorderSizePixel = 0
-Divider.Parent = MainContainer
+Utility:Padding(ContentScroll, {Left = 8, Right = 8, Top = 8, Bottom = 8})
 
--- Нижняя панель с вкладками
+-- Нижняя панель табов
 local TabBar = Instance.new("Frame")
 TabBar.Name = "TabBar"
-TabBar.Position = UDim2.new(0, 0, 1, -70)
-TabBar.Size = UDim2.new(1, 0, 0, 70)
-TabBar.BackgroundColor3 = Colors.Card
+TabBar.Position = UDim2.new(0, 0, 1, -55)
+TabBar.Size = UDim2.new(1, 0, 0, 55)
+TabBar.BackgroundColor3 = Theme.Card
 TabBar.BorderSizePixel = 0
-TabBar.Parent = MainContainer
+TabBar.Parent = Main
 
--- Закругление нижней части
-local BottomCorner = Instance.new("Frame")
-BottomCorner.Size = UDim2.new(1, 0, 0, 16)
-BottomCorner.Position = UDim2.new(0, 0, 0, 0)
-BottomCorner.BackgroundColor3 = Colors.Background
-BottomCorner.BorderSizePixel = 0
-BottomCorner.Parent = TabBar
+local TabBarTop = Instance.new("Frame")
+TabBarTop.Size = UDim2.new(1, 0, 0, 12)
+TabBarTop.BackgroundColor3 = Theme.Card
+TabBarTop.BorderSizePixel = 0
+TabBarTop.Parent = TabBar
 
--- Контейнер для кнопок вкладок
+local TabBarDivider = Instance.new("Frame")
+TabBarDivider.Size = UDim2.new(1, 0, 0, 1)
+TabBarDivider.BackgroundColor3 = Theme.Border
+TabBarDivider.BorderSizePixel = 0
+TabBarDivider.Parent = TabBar
+
 local TabContainer = Instance.new("Frame")
-TabContainer.Name = "TabContainer"
-TabContainer.Position = UDim2.new(0, 5, 0, 5)
-TabContainer.Size = UDim2.new(1, -10, 1, -10)
+TabContainer.Position = UDim2.new(0, 8, 0, 6)
+TabContainer.Size = UDim2.new(1, -16, 1, -12)
 TabContainer.BackgroundTransparency = 1
 TabContainer.Parent = TabBar
 
-local TabLayout = Instance.new("UIListLayout")
-TabLayout.FillDirection = Enum.FillDirection.Horizontal
-TabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-TabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-TabLayout.Padding = UDim.new(0, 5)
-TabLayout.Parent = TabContainer
+local TabList = Instance.new("UIListLayout")
+TabList.FillDirection = Enum.FillDirection.Horizontal
+TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+TabList.VerticalAlignment = Enum.VerticalAlignment.Center
+TabList.Padding = UDim.new(0, 4)
+TabList.Parent = TabContainer
 
--- Переменные для вкладок
+-- Переменные
 local CurrentTab = nil
 local Tabs = {}
+local ActiveDropdown = nil
 
--- Библиотека элементов UI
+-- Библиотека UI
 local Library = {}
 
 -- Создание вкладки
 function Library:CreateTab(name, icon)
-    local TabButton = Instance.new("TextButton")
-    TabButton.Name = name .. "Tab"
-    TabButton.Size = UDim2.new(0, 60, 0, 60)
-    TabButton.BackgroundColor3 = Colors.Background
-    TabButton.BorderSizePixel = 0
-    TabButton.AutoButtonColor = false
-    TabButton.Text = ""
-    TabButton.Parent = TabContainer
-    Utility:CreateCorner(TabButton, 10)
+    local Tab = {}
+    Tab.Name = name
+    Tab.Elements = {}
 
-    -- Иконка (эмодзи)
-    local Icon = Instance.new("TextLabel")
-    Icon.Name = "Icon"
-    Icon.Position = UDim2.new(0, 0, 0, 8)
-    Icon.Size = UDim2.new(1, 0, 0, 24)
-    Icon.BackgroundTransparency = 1
-    Icon.Text = icon
-    Icon.TextColor3 = Colors.TextSecondary
-    Icon.Font = Enum.Font.GothamBold
-    Icon.TextSize = 20
-    Icon.Parent = TabButton
+    local TabBtn = Instance.new("TextButton")
+    TabBtn.Name = name
+    TabBtn.Size = UDim2.new(0, 52, 0, 45)
+    TabBtn.BackgroundColor3 = Theme.Background
+    TabBtn.BorderSizePixel = 0
+    TabBtn.AutoButtonColor = false
+    TabBtn.Text = ""
+    TabBtn.Parent = TabContainer
+    Utility:Corner(TabBtn, 8)
 
-    -- Название вкладки
-    local Label = Instance.new("TextLabel")
-    Label.Name = "Label"
-    Label.Position = UDim2.new(0, 0, 0, 34)
-    Label.Size = UDim2.new(1, 0, 0, 20)
-    Label.BackgroundTransparency = 1
-    Label.Text = name
-    Label.TextColor3 = Colors.TextSecondary
-    Label.Font = Enum.Font.Gotham
-    Label.TextSize = 9
-    Label.Parent = TabButton
+    local TabIcon = Instance.new("TextLabel")
+    TabIcon.Position = UDim2.new(0, 0, 0, 4)
+    TabIcon.Size = UDim2.new(1, 0, 0, 20)
+    TabIcon.BackgroundTransparency = 1
+    TabIcon.Text = icon
+    TabIcon.TextColor3 = Theme.Secondary
+    TabIcon.Font = Enum.Font.GothamBold
+    TabIcon.TextSize = 16
+    TabIcon.Parent = TabBtn
 
-    -- Индикатор активной вкладки
+    local TabLabel = Instance.new("TextLabel")
+    TabLabel.Position = UDim2.new(0, 0, 0, 26)
+    TabLabel.Size = UDim2.new(1, 0, 0, 14)
+    TabLabel.BackgroundTransparency = 1
+    TabLabel.Text = name
+    TabLabel.TextColor3 = Theme.Secondary
+    TabLabel.Font = Enum.Font.Gotham
+    TabLabel.TextSize = 8
+    TabLabel.Parent = TabBtn
+
     local Indicator = Instance.new("Frame")
-    Indicator.Name = "Indicator"
     Indicator.AnchorPoint = Vector2.new(0.5, 1)
-    Indicator.Position = UDim2.new(0.5, 0, 1, -3)
-    Indicator.Size = UDim2.new(0.7, 0, 0, 2)
-    Indicator.BackgroundColor3 = Colors.Accent
+    Indicator.Position = UDim2.new(0.5, 0, 1, -2)
+    Indicator.Size = UDim2.new(0.6, 0, 0, 2)
+    Indicator.BackgroundColor3 = Theme.Primary
     Indicator.BorderSizePixel = 0
     Indicator.Visible = false
-    Indicator.Parent = TabButton
-    Utility:CreateCorner(Indicator, 1)
+    Indicator.Parent = TabBtn
+    Utility:Corner(Indicator, 1)
 
-    -- Таб контент
-    local TabContent = {
-        Name = name,
-        Button = TabButton,
-        Icon = Icon,
-        Label = Label,
-        Indicator = Indicator,
-        Elements = {}
-    }
+    Tab.Button = TabBtn
+    Tab.Icon = TabIcon
+    Tab.Label = TabLabel
+    Tab.Indicator = Indicator
 
-    -- Обработка нажатия
-    TabButton.MouseButton1Click:Connect(function()
-        Library:SelectTab(TabContent)
+    TabBtn.MouseButton1Click:Connect(function()
+        Library:SelectTab(Tab)
     end)
 
-    -- Эффект наведения
-    TabButton.MouseEnter:Connect(function()
-        if CurrentTab ~= TabContent then
-            Utility:Tween(TabButton, {BackgroundColor3 = Color3.fromRGB(20, 20, 20)})
+    TabBtn.MouseEnter:Connect(function()
+        if CurrentTab ~= Tab then
+            Utility:Tween(TabBtn, {BackgroundColor3 = Theme.CardHover})
         end
     end)
 
-    TabButton.MouseLeave:Connect(function()
-        if CurrentTab ~= TabContent then
-            Utility:Tween(TabButton, {BackgroundColor3 = Colors.Background})
+    TabBtn.MouseLeave:Connect(function()
+        if CurrentTab ~= Tab then
+            Utility:Tween(TabBtn, {BackgroundColor3 = Theme.Background})
         end
     end)
 
-    table.insert(Tabs, TabContent)
-    return TabContent
+    table.insert(Tabs, Tab)
+    return Tab
 end
 
 -- Выбор вкладки
 function Library:SelectTab(tab)
-    -- Деактивация предыдущей вкладки
     if CurrentTab then
-        Utility:Tween(CurrentTab.Button, {BackgroundColor3 = Colors.Background})
-        Utility:Tween(CurrentTab.Icon, {TextColor3 = Colors.TextSecondary})
-        Utility:Tween(CurrentTab.Label, {TextColor3 = Colors.TextSecondary})
+        Utility:Tween(CurrentTab.Button, {BackgroundColor3 = Theme.Background})
+        Utility:Tween(CurrentTab.Icon, {TextColor3 = Theme.Secondary})
+        Utility:Tween(CurrentTab.Label, {TextColor3 = Theme.Secondary})
         CurrentTab.Indicator.Visible = false
     end
 
-    -- Активация новой вкладки
     CurrentTab = tab
-    Utility:Tween(tab.Button, {BackgroundColor3 = Color3.fromRGB(30, 30, 30)})
-    Utility:Tween(tab.Icon, {TextColor3 = Colors.Accent})
-    Utility:Tween(tab.Label, {TextColor3 = Colors.Accent})
+    Utility:Tween(tab.Button, {BackgroundColor3 = Theme.Card})
+    Utility:Tween(tab.Icon, {TextColor3 = Theme.Primary})
+    Utility:Tween(tab.Label, {TextColor3 = Theme.Primary})
     tab.Indicator.Visible = true
 
     -- Очистка контента
     for _, child in pairs(ContentScroll:GetChildren()) do
-        if child:IsA("Frame") or child:IsA("TextLabel") then
+        if not child:IsA("UIListLayout") and not child:IsA("UIPadding") then
             child:Destroy()
         end
     end
 
-    -- Загрузка элементов вкладки
+    -- Загрузка элементов
     for _, element in pairs(tab.Elements) do
         element.Parent = ContentScroll
     end
+
+    ContentScroll.CanvasPosition = Vector2.new(0, 0)
 end
 
 -- Создание секции
 function Library:CreateSection(tab, text)
     local Section = Instance.new("Frame")
     Section.Name = "Section"
-    Section.Size = UDim2.new(1, 0, 0, 35)
+    Section.Size = UDim2.new(1, 0, 0, 28)
     Section.BackgroundTransparency = 1
     Section.LayoutOrder = #tab.Elements
 
@@ -518,13 +500,12 @@ function Library:CreateSection(tab, text)
     SectionLabel.Size = UDim2.new(1, 0, 1, 0)
     SectionLabel.BackgroundTransparency = 1
     SectionLabel.Text = text
-    SectionLabel.TextColor3 = Colors.Accent
+    SectionLabel.TextColor3 = Theme.Primary
     SectionLabel.Font = Enum.Font.GothamBold
-    SectionLabel.TextSize = 13
+    SectionLabel.TextSize = 11
     SectionLabel.TextXAlignment = Enum.TextXAlignment.Left
     SectionLabel.Parent = Section
-
-    Utility:CreatePadding(SectionLabel, 8)
+    Utility:Padding(SectionLabel, {Left = 4})
 
     table.insert(tab.Elements, Section)
     return Section
@@ -534,88 +515,85 @@ end
 function Library:CreateToggle(tab, text, default, callback)
     local Toggle = Instance.new("Frame")
     Toggle.Name = "Toggle"
-    Toggle.Size = UDim2.new(1, 0, 0, 45)
-    Toggle.BackgroundColor3 = Colors.Card
+    Toggle.Size = UDim2.new(1, 0, 0, 38)
+    Toggle.BackgroundColor3 = Theme.Card
     Toggle.BorderSizePixel = 0
     Toggle.LayoutOrder = #tab.Elements
-    Utility:CreateCorner(Toggle, 8)
+    Utility:Corner(Toggle, 6)
 
-    local ToggleLabel = Instance.new("TextLabel")
-    ToggleLabel.Position = UDim2.new(0, 12, 0, 0)
-    ToggleLabel.Size = UDim2.new(1, -80, 1, 0)
-    ToggleLabel.BackgroundTransparency = 1
-    ToggleLabel.Text = text
-    ToggleLabel.TextColor3 = Colors.TextPrimary
-    ToggleLabel.Font = Enum.Font.Gotham
-    ToggleLabel.TextSize = 12
-    ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    ToggleLabel.TextWrapped = true
-    ToggleLabel.Parent = Toggle
+    local Label = Instance.new("TextLabel")
+    Label.Position = UDim2.new(0, 10, 0, 0)
+    Label.Size = UDim2.new(1, -60, 1, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Theme.Primary
+    Label.Font = Enum.Font.Gotham
+    Label.TextSize = 11
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.TextWrapped = true
+    Label.Parent = Toggle
 
-    local ToggleButton = Instance.new("TextButton")
-    ToggleButton.AnchorPoint = Vector2.new(1, 0.5)
-    ToggleButton.Position = UDim2.new(1, -12, 0.5, 0)
-    ToggleButton.Size = UDim2.new(0, 50, 0, 26)
-    ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    ToggleButton.BorderSizePixel = 0
-    ToggleButton.AutoButtonColor = false
-    ToggleButton.Text = ""
-    ToggleButton.Parent = Toggle
-    Utility:CreateCorner(ToggleButton, 13)
+    local Switch = Instance.new("TextButton")
+    Switch.AnchorPoint = Vector2.new(1, 0.5)
+    Switch.Position = UDim2.new(1, -10, 0.5, 0)
+    Switch.Size = UDim2.new(0, 42, 0, 22)
+    Switch.BackgroundColor3 = Theme.Disabled
+    Switch.BorderSizePixel = 0
+    Switch.AutoButtonColor = false
+    Switch.Text = ""
+    Switch.Parent = Toggle
+    Utility:Corner(Switch, 11)
 
-    local ToggleIndicator = Instance.new("Frame")
-    ToggleIndicator.Position = UDim2.new(0, 3, 0.5, 0)
-    ToggleIndicator.AnchorPoint = Vector2.new(0, 0.5)
-    ToggleIndicator.Size = UDim2.new(0, 20, 0, 20)
-    ToggleIndicator.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-    ToggleIndicator.BorderSizePixel = 0
-    ToggleIndicator.Parent = ToggleButton
-    Utility:CreateCorner(ToggleIndicator, 10)
+    local Knob = Instance.new("Frame")
+    Knob.Position = UDim2.new(0, 2, 0.5, 0)
+    Knob.AnchorPoint = Vector2.new(0, 0.5)
+    Knob.Size = UDim2.new(0, 18, 0, 18)
+    Knob.BackgroundColor3 = Theme.Primary
+    Knob.BorderSizePixel = 0
+    Knob.Parent = Switch
+    Utility:Corner(Knob, 9)
 
     local State = default or false
 
-    local function UpdateToggle(noCallback)
-        State = not State
-
+    local function Update()
         if State then
-            Utility:Tween(ToggleButton, {BackgroundColor3 = Colors.Accent}, 0.2)
-            Utility:Tween(ToggleIndicator, {
-                Position = UDim2.new(1, -23, 0.5, 0),
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            }, 0.2)
+            Utility:Tween(Switch, {BackgroundColor3 = Theme.Primary})
+            Utility:Tween(Knob, {
+                Position = UDim2.new(1, -20, 0.5, 0),
+                BackgroundColor3 = Theme.Background
+            })
         else
-            Utility:Tween(ToggleButton, {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}, 0.2)
-            Utility:Tween(ToggleIndicator, {
-                Position = UDim2.new(0, 3, 0.5, 0),
-                BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-            }, 0.2)
+            Utility:Tween(Switch, {BackgroundColor3 = Theme.Disabled})
+            Utility:Tween(Knob, {
+                Position = UDim2.new(0, 2, 0.5, 0),
+                BackgroundColor3 = Theme.Primary
+            })
         end
 
-        if callback and not noCallback then
+        if callback then
             pcall(callback, State)
         end
     end
 
-    -- Установка начального состояния без вызова callback
     if State then
-        ToggleButton.BackgroundColor3 = Colors.Accent
-        ToggleIndicator.Position = UDim2.new(1, -23, 0.5, 0)
-        ToggleIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        Switch.BackgroundColor3 = Theme.Primary
+        Knob.Position = UDim2.new(1, -20, 0.5, 0)
+        Knob.BackgroundColor3 = Theme.Background
     end
 
-    ToggleButton.MouseButton1Click:Connect(function()
-        UpdateToggle()
+    Switch.MouseButton1Click:Connect(function()
+        State = not State
+        Update()
     end)
 
     table.insert(tab.Elements, Toggle)
 
     return {
-        SetState = function(newState)
-            if State ~= newState then
-                UpdateToggle(true)
-            end
+        Set = function(val)
+            State = val
+            Update()
         end,
-        GetState = function()
+        Get = function()
             return State
         end
     }
@@ -625,102 +603,101 @@ end
 function Library:CreateSlider(tab, text, min, max, default, suffix, callback)
     local Slider = Instance.new("Frame")
     Slider.Name = "Slider"
-    Slider.Size = UDim2.new(1, 0, 0, 55)
-    Slider.BackgroundColor3 = Colors.Card
+    Slider.Size = UDim2.new(1, 0, 0, 48)
+    Slider.BackgroundColor3 = Theme.Card
     Slider.BorderSizePixel = 0
     Slider.LayoutOrder = #tab.Elements
-    Utility:CreateCorner(Slider, 8)
+    Utility:Corner(Slider, 6)
 
-    local SliderLabel = Instance.new("TextLabel")
-    SliderLabel.Position = UDim2.new(0, 12, 0, 8)
-    SliderLabel.Size = UDim2.new(0.6, 0, 0, 15)
-    SliderLabel.BackgroundTransparency = 1
-    SliderLabel.Text = text
-    SliderLabel.TextColor3 = Colors.TextPrimary
-    SliderLabel.Font = Enum.Font.Gotham
-    SliderLabel.TextSize = 12
-    SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
-    SliderLabel.Parent = Slider
+    local Label = Instance.new("TextLabel")
+    Label.Position = UDim2.new(0, 10, 0, 6)
+    Label.Size = UDim2.new(0.6, 0, 0, 14)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Theme.Primary
+    Label.Font = Enum.Font.Gotham
+    Label.TextSize = 11
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Slider
 
-    local SliderValue = Instance.new("TextLabel")
-    SliderValue.Position = UDim2.new(0.6, 0, 0, 8)
-    SliderValue.Size = UDim2.new(0.4, -12, 0, 15)
-    SliderValue.BackgroundTransparency = 1
-    SliderValue.Text = tostring(default) .. (suffix or "")
-    SliderValue.TextColor3 = Colors.Accent
-    SliderValue.Font = Enum.Font.GothamBold
-    SliderValue.TextSize = 12
-    SliderValue.TextXAlignment = Enum.TextXAlignment.Right
-    SliderValue.Parent = Slider
+    local Value = Instance.new("TextLabel")
+    Value.Position = UDim2.new(0.6, 0, 0, 6)
+    Value.Size = UDim2.new(0.4, -10, 0, 14)
+    Value.BackgroundTransparency = 1
+    Value.Text = tostring(default) .. (suffix or "")
+    Value.TextColor3 = Theme.Primary
+    Value.Font = Enum.Font.GothamBold
+    Value.TextSize = 11
+    Value.TextXAlignment = Enum.TextXAlignment.Right
+    Value.Parent = Slider
 
-    local SliderBar = Instance.new("Frame")
-    SliderBar.Position = UDim2.new(0, 12, 1, -20)
-    SliderBar.Size = UDim2.new(1, -24, 0, 6)
-    SliderBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    SliderBar.BorderSizePixel = 0
-    SliderBar.Parent = Slider
-    Utility:CreateCorner(SliderBar, 3)
+    local Track = Instance.new("Frame")
+    Track.Position = UDim2.new(0, 10, 1, -18)
+    Track.Size = UDim2.new(1, -20, 0, 4)
+    Track.BackgroundColor3 = Theme.Disabled
+    Track.BorderSizePixel = 0
+    Track.Parent = Slider
+    Utility:Corner(Track, 2)
 
-    local SliderFill = Instance.new("Frame")
-    SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    SliderFill.BackgroundColor3 = Colors.Accent
-    SliderFill.BorderSizePixel = 0
-    SliderFill.Parent = SliderBar
-    Utility:CreateCorner(SliderFill, 3)
+    local Fill = Instance.new("Frame")
+    Fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    Fill.BackgroundColor3 = Theme.Primary
+    Fill.BorderSizePixel = 0
+    Fill.Parent = Track
+    Utility:Corner(Fill, 2)
 
-    local SliderDot = Instance.new("Frame")
-    SliderDot.AnchorPoint = Vector2.new(0.5, 0.5)
-    SliderDot.Position = UDim2.new(1, 0, 0.5, 0)
-    SliderDot.Size = UDim2.new(0, 14, 0, 14)
-    SliderDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    SliderDot.BorderSizePixel = 0
-    SliderDot.Parent = SliderFill
-    Utility:CreateCorner(SliderDot, 7)
+    local Thumb = Instance.new("Frame")
+    Thumb.AnchorPoint = Vector2.new(0.5, 0.5)
+    Thumb.Position = UDim2.new(1, 0, 0.5, 0)
+    Thumb.Size = UDim2.new(0, 12, 0, 12)
+    Thumb.BackgroundColor3 = Theme.Primary
+    Thumb.BorderSizePixel = 0
+    Thumb.Parent = Fill
+    Utility:Corner(Thumb, 6)
 
     local CurrentValue = default
     local Dragging = false
 
-    local function UpdateSlider(input)
-        local relativeX = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
-        CurrentValue = math.floor(min + (max - min) * relativeX)
-
-        SliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
-        SliderValue.Text = tostring(CurrentValue) .. (suffix or "")
+    local function Update(input)
+        local pos = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
+        CurrentValue = math.floor(min + (max - min) * pos)
+        Fill.Size = UDim2.new(pos, 0, 1, 0)
+        Value.Text = tostring(CurrentValue) .. (suffix or "")
 
         if callback then
             pcall(callback, CurrentValue)
         end
     end
 
-    SliderBar.InputBegan:Connect(function(input)
+    Track.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             Dragging = true
-            UpdateSlider(input)
-        end
-    end)
-
-    SliderBar.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            Dragging = false
+            Update(input)
         end
     end)
 
     UserInputService.InputChanged:Connect(function(input)
         if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            UpdateSlider(input)
+            Update(input)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            Dragging = false
         end
     end)
 
     table.insert(tab.Elements, Slider)
 
     return {
-        SetValue = function(value)
-            CurrentValue = math.clamp(value, min, max)
-            local relativeX = (CurrentValue - min) / (max - min)
-            SliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
-            SliderValue.Text = tostring(CurrentValue) .. (suffix or "")
+        Set = function(val)
+            CurrentValue = math.clamp(val, min, max)
+            local pos = (CurrentValue - min) / (max - min)
+            Fill.Size = UDim2.new(pos, 0, 1, 0)
+            Value.Text = tostring(CurrentValue) .. (suffix or "")
         end,
-        GetValue = function()
+        Get = function()
             return CurrentValue
         end
     }
@@ -730,29 +707,30 @@ end
 function Library:CreateButton(tab, text, callback)
     local Button = Instance.new("TextButton")
     Button.Name = "Button"
-    Button.Size = UDim2.new(1, 0, 0, 40)
-    Button.BackgroundColor3 = Colors.Accent
+    Button.Size = UDim2.new(1, 0, 0, 36)
+    Button.BackgroundColor3 = Theme.Card
     Button.BorderSizePixel = 0
     Button.AutoButtonColor = false
     Button.Text = text
-    Button.TextColor3 = Colors.TextPrimary
+    Button.TextColor3 = Theme.Primary
     Button.Font = Enum.Font.GothamBold
-    Button.TextSize = 13
+    Button.TextSize = 12
     Button.LayoutOrder = #tab.Elements
-    Utility:CreateCorner(Button, 8)
+    Utility:Corner(Button, 6)
+    Utility:Stroke(Button, Theme.Border, 1)
 
     Button.MouseEnter:Connect(function()
-        Utility:Tween(Button, {BackgroundColor3 = Color3.fromRGB(230, 38, 98)})
+        Utility:Tween(Button, {BackgroundColor3 = Theme.CardHover})
     end)
 
     Button.MouseLeave:Connect(function()
-        Utility:Tween(Button, {BackgroundColor3 = Colors.Accent})
+        Utility:Tween(Button, {BackgroundColor3 = Theme.Card})
     end)
 
     Button.MouseButton1Click:Connect(function()
-        Utility:Tween(Button, {BackgroundColor3 = Color3.fromRGB(200, 30, 85)}, 0.1)
+        Utility:Tween(Button, {BackgroundColor3 = Theme.Background}, 0.1)
         task.wait(0.1)
-        Utility:Tween(Button, {BackgroundColor3 = Colors.Accent}, 0.1)
+        Utility:Tween(Button, {BackgroundColor3 = Theme.Card}, 0.1)
 
         if callback then
             pcall(callback)
@@ -763,26 +741,27 @@ function Library:CreateButton(tab, text, callback)
     return Button
 end
 
--- Создание Selector (Dropdown)
-function Library:CreateSelector(tab, text, options, default, callback)
-    local Selector = Instance.new("Frame")
-    Selector.Name = "Selector"
-    Selector.Size = UDim2.new(1, 0, 0, 45)
-    Selector.BackgroundColor3 = Colors.Card
-    Selector.BorderSizePixel = 0
-    Selector.LayoutOrder = #tab.Elements
-    Utility:CreateCorner(Selector, 8)
+-- Создание Dropdown (выпадающий список)
+function Library:CreateDropdown(tab, text, options, default, callback)
+    local Dropdown = Instance.new("Frame")
+    Dropdown.Name = "Dropdown"
+    Dropdown.Size = UDim2.new(1, 0, 0, 38)
+    Dropdown.BackgroundColor3 = Theme.Card
+    Dropdown.BorderSizePixel = 0
+    Dropdown.ClipDescendants = false
+    Dropdown.LayoutOrder = #tab.Elements
+    Utility:Corner(Dropdown, 6)
 
-    local SelectorLabel = Instance.new("TextLabel")
-    SelectorLabel.Position = UDim2.new(0, 12, 0, 0)
-    SelectorLabel.Size = UDim2.new(0.45, 0, 1, 0)
-    SelectorLabel.BackgroundTransparency = 1
-    SelectorLabel.Text = text
-    SelectorLabel.TextColor3 = Colors.TextPrimary
-    SelectorLabel.Font = Enum.Font.Gotham
-    SelectorLabel.TextSize = 12
-    SelectorLabel.TextXAlignment = Enum.TextXAlignment.Left
-    SelectorLabel.Parent = Selector
+    local Label = Instance.new("TextLabel")
+    Label.Position = UDim2.new(0, 10, 0, 0)
+    Label.Size = UDim2.new(0.4, 0, 1, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Theme.Primary
+    Label.Font = Enum.Font.Gotham
+    Label.TextSize = 11
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Dropdown
 
     local CurrentIndex = 1
     for i, v in ipairs(options) do
@@ -792,145 +771,417 @@ function Library:CreateSelector(tab, text, options, default, callback)
         end
     end
 
-    local SelectorButton = Instance.new("TextButton")
-    SelectorButton.Position = UDim2.new(0.5, 5, 0.5, 0)
-    SelectorButton.AnchorPoint = Vector2.new(0, 0.5)
-    SelectorButton.Size = UDim2.new(0.45, -17, 0, 30)
-    SelectorButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    SelectorButton.BorderSizePixel = 0
-    SelectorButton.AutoButtonColor = false
-    SelectorButton.Text = options[CurrentIndex]
-    SelectorButton.TextColor3 = Colors.Accent
-    SelectorButton.Font = Enum.Font.GothamBold
-    SelectorButton.TextSize = 11
-    SelectorButton.TextTruncate = Enum.TextTruncate.AtEnd
-    SelectorButton.Parent = Selector
-    Utility:CreateCorner(SelectorButton, 6)
+    local Selected = Instance.new("TextButton")
+    Selected.Position = UDim2.new(0.45, 0, 0.5, 0)
+    Selected.AnchorPoint = Vector2.new(0, 0.5)
+    Selected.Size = UDim2.new(0.5, -10, 0, 26)
+    Selected.BackgroundColor3 = Theme.Background
+    Selected.BorderSizePixel = 0
+    Selected.AutoButtonColor = false
+    Selected.Text = ""
+    Selected.Parent = Dropdown
+    Utility:Corner(Selected, 5)
+    Utility:Stroke(Selected, Theme.Border, 1)
 
-    SelectorButton.MouseButton1Click:Connect(function()
-        CurrentIndex = CurrentIndex % #options + 1
-        SelectorButton.Text = options[CurrentIndex]
+    local SelectedText = Instance.new("TextLabel")
+    SelectedText.Position = UDim2.new(0, 8, 0, 0)
+    SelectedText.Size = UDim2.new(1, -24, 1, 0)
+    SelectedText.BackgroundTransparency = 1
+    SelectedText.Text = options[CurrentIndex]
+    SelectedText.TextColor3 = Theme.Primary
+    SelectedText.Font = Enum.Font.Gotham
+    SelectedText.TextSize = 10
+    SelectedText.TextXAlignment = Enum.TextXAlignment.Left
+    SelectedText.TextTruncate = Enum.TextTruncate.AtEnd
+    SelectedText.Parent = Selected
 
-        if callback then
-            pcall(callback, options[CurrentIndex])
+    local Arrow = Instance.new("TextLabel")
+    Arrow.AnchorPoint = Vector2.new(1, 0.5)
+    Arrow.Position = UDim2.new(1, -6, 0.5, 0)
+    Arrow.Size = UDim2.new(0, 12, 0, 12)
+    Arrow.BackgroundTransparency = 1
+    Arrow.Text = "▼"
+    Arrow.TextColor3 = Theme.Secondary
+    Arrow.Font = Enum.Font.GothamBold
+    Arrow.TextSize = 8
+    Arrow.Parent = Selected
+
+    -- Выпадающий список
+    local DropList = Instance.new("Frame")
+    DropList.Position = UDim2.new(0.45, 0, 1, 4)
+    DropList.Size = UDim2.new(0.5, -10, 0, 0)
+    DropList.BackgroundColor3 = Theme.Card
+    DropList.BorderSizePixel = 0
+    DropList.Visible = false
+    DropList.ZIndex = 10
+    DropList.Parent = Dropdown
+    Utility:Corner(DropList, 5)
+    Utility:Stroke(DropList, Theme.Border, 1)
+
+    local DropScroll = Instance.new("ScrollingFrame")
+    DropScroll.Size = UDim2.new(1, 0, 1, 0)
+    DropScroll.BackgroundTransparency = 1
+    DropScroll.BorderSizePixel = 0
+    DropScroll.ScrollBarThickness = 2
+    DropScroll.ScrollBarImageColor3 = Theme.Primary
+    DropScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    DropScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    DropScroll.Parent = DropList
+
+    local DropLayout = Instance.new("UIListLayout")
+    DropLayout.Padding = UDim.new(0, 2)
+    DropLayout.Parent = DropScroll
+
+    Utility:Padding(DropScroll, 4)
+
+    local IsOpen = false
+
+    local function Toggle()
+        IsOpen = not IsOpen
+
+        if IsOpen then
+            if ActiveDropdown and ActiveDropdown ~= DropList then
+                ActiveDropdown.Visible = false
+            end
+            ActiveDropdown = DropList
+
+            local itemHeight = 28
+            local maxHeight = math.min(#options * itemHeight + 8, 150)
+            DropList.Size = UDim2.new(0.5, -10, 0, maxHeight)
+            DropList.Visible = true
+            Utility:Tween(Arrow, {Rotation = 180})
+        else
+            DropList.Visible = false
+            Utility:Tween(Arrow, {Rotation = 0})
+            ActiveDropdown = nil
         end
-    end)
+    end
 
-    SelectorButton.MouseEnter:Connect(function()
-        Utility:Tween(SelectorButton, {BackgroundColor3 = Color3.fromRGB(70, 70, 70)})
-    end)
+    Selected.MouseButton1Click:Connect(Toggle)
 
-    SelectorButton.MouseLeave:Connect(function()
-        Utility:Tween(SelectorButton, {BackgroundColor3 = Color3.fromRGB(50, 50, 50)})
-    end)
+    -- Создание опций
+    for i, option in ipairs(options) do
+        local Option = Instance.new("TextButton")
+        Option.Size = UDim2.new(1, 0, 0, 26)
+        Option.BackgroundColor3 = i == CurrentIndex and Theme.Background or Theme.Card
+        Option.BorderSizePixel = 0
+        Option.AutoButtonColor = false
+        Option.Text = option
+        Option.TextColor3 = Theme.Primary
+        Option.Font = Enum.Font.Gotham
+        Option.TextSize = 10
+        Option.TextXAlignment = Enum.TextXAlignment.Left
+        Option.Parent = DropScroll
+        Utility:Corner(Option, 4)
+        Utility:Padding(Option, {Left = 8})
 
-    table.insert(tab.Elements, Selector)
+        Option.MouseEnter:Connect(function()
+            if i ~= CurrentIndex then
+                Utility:Tween(Option, {BackgroundColor3 = Theme.CardHover})
+            end
+        end)
+
+        Option.MouseLeave:Connect(function()
+            if i ~= CurrentIndex then
+                Utility:Tween(Option, {BackgroundColor3 = Theme.Card})
+            end
+        end)
+
+        Option.MouseButton1Click:Connect(function()
+            -- Сброс предыдущего выбора
+            for _, child in pairs(DropScroll:GetChildren()) do
+                if child:IsA("TextButton") then
+                    child.BackgroundColor3 = Theme.Card
+                end
+            end
+
+            CurrentIndex = i
+            SelectedText.Text = option
+            Option.BackgroundColor3 = Theme.Background
+            Toggle()
+
+            if callback then
+                pcall(callback, option)
+            end
+        end)
+    end
+
+    table.insert(tab.Elements, Dropdown)
 
     return {
-        SetOption = function(option)
+        Set = function(option)
             for i, v in ipairs(options) do
                 if v == option then
                     CurrentIndex = i
-                    SelectorButton.Text = v
+                    SelectedText.Text = v
+                    for _, child in pairs(DropScroll:GetChildren()) do
+                        if child:IsA("TextButton") then
+                            child.BackgroundColor3 = Theme.Card
+                        end
+                    end
+                    DropScroll:GetChildren()[i].BackgroundColor3 = Theme.Background
                     break
                 end
             end
         end,
-        GetOption = function()
+        Get = function()
             return options[CurrentIndex]
         end
     }
 end
 
--- Создание ColorPicker
+-- Создание ColorPicker (полноценный)
 function Library:CreateColorPicker(tab, text, default, callback)
     local ColorPicker = Instance.new("Frame")
     ColorPicker.Name = "ColorPicker"
-    ColorPicker.Size = UDim2.new(1, 0, 0, 45)
-    ColorPicker.BackgroundColor3 = Colors.Card
+    ColorPicker.Size = UDim2.new(1, 0, 0, 38)
+    ColorPicker.BackgroundColor3 = Theme.Card
     ColorPicker.BorderSizePixel = 0
+    ColorPicker.ClipDescendants = false
     ColorPicker.LayoutOrder = #tab.Elements
-    Utility:CreateCorner(ColorPicker, 8)
+    Utility:Corner(ColorPicker, 6)
 
-    local PickerLabel = Instance.new("TextLabel")
-    PickerLabel.Position = UDim2.new(0, 12, 0, 0)
-    PickerLabel.Size = UDim2.new(0.65, 0, 1, 0)
-    PickerLabel.BackgroundTransparency = 1
-    PickerLabel.Text = text
-    PickerLabel.TextColor3 = Colors.TextPrimary
-    PickerLabel.Font = Enum.Font.Gotham
-    PickerLabel.TextSize = 12
-    PickerLabel.TextXAlignment = Enum.TextXAlignment.Left
-    PickerLabel.Parent = ColorPicker
+    local Label = Instance.new("TextLabel")
+    Label.Position = UDim2.new(0, 10, 0, 0)
+    Label.Size = UDim2.new(0.65, 0, 1, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Theme.Primary
+    Label.Font = Enum.Font.Gotham
+    Label.TextSize = 11
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = ColorPicker
 
     local ColorBox = Instance.new("TextButton")
     ColorBox.AnchorPoint = Vector2.new(1, 0.5)
-    ColorBox.Position = UDim2.new(1, -12, 0.5, 0)
-    ColorBox.Size = UDim2.new(0, 60, 0, 28)
+    ColorBox.Position = UDim2.new(1, -10, 0.5, 0)
+    ColorBox.Size = UDim2.new(0, 50, 0, 24)
     ColorBox.BackgroundColor3 = default or Color3.fromRGB(255, 255, 255)
     ColorBox.BorderSizePixel = 0
     ColorBox.AutoButtonColor = false
     ColorBox.Text = ""
     ColorBox.Parent = ColorPicker
-    Utility:CreateCorner(ColorBox, 6)
-    Utility:CreateStroke(ColorBox, Colors.Border, 2)
+    Utility:Corner(ColorBox, 5)
+    Utility:Stroke(ColorBox, Theme.Border, 1)
 
     local CurrentColor = default or Color3.fromRGB(255, 255, 255)
 
-    -- Простой ColorPicker через циклическое переключение предустановленных цветов
-    local PresetColors = {
-        Color3.fromRGB(255, 42, 109),  -- Accent
-        Color3.fromRGB(255, 0, 0),     -- Red
-        Color3.fromRGB(0, 255, 0),     -- Green
-        Color3.fromRGB(0, 0, 255),     -- Blue
-        Color3.fromRGB(255, 255, 0),   -- Yellow
-        Color3.fromRGB(255, 165, 0),   -- Orange
-        Color3.fromRGB(128, 0, 128),   -- Purple
-        Color3.fromRGB(0, 255, 255),   -- Cyan
-        Color3.fromRGB(255, 255, 255), -- White
-        Color3.fromRGB(0, 0, 0)        -- Black
+    -- Окно выбора цвета
+    local PickerWindow = Instance.new("Frame")
+    PickerWindow.AnchorPoint = Vector2.new(0.5, 0)
+    PickerWindow.Position = UDim2.new(0.5, 0, 1, 4)
+    PickerWindow.Size = UDim2.new(1, 0, 0, 0)
+    PickerWindow.BackgroundColor3 = Theme.Card
+    PickerWindow.BorderSizePixel = 0
+    PickerWindow.Visible = false
+    PickerWindow.ZIndex = 100
+    PickerWindow.Parent = ColorPicker
+    Utility:Corner(PickerWindow, 6)
+    Utility:Stroke(PickerWindow, Theme.Border, 1)
+
+    local IsOpen = false
+    local CurrentHue = 0
+    local CurrentSat = 1
+    local CurrentVal = 1
+
+    -- Палитра SV
+    local Palette = Instance.new("ImageButton")
+    Palette.Position = UDim2.new(0, 10, 0, 10)
+    Palette.Size = UDim2.new(1, -50, 0, 150)
+    Palette.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    Palette.BorderSizePixel = 0
+    Palette.AutoButtonColor = false
+    Palette.Parent = PickerWindow
+    Utility:Corner(Palette, 5)
+
+    local PaletteGradient = Instance.new("UIGradient")
+    PaletteGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
     }
+    PaletteGradient.Rotation = 0
+    PaletteGradient.Parent = Palette
 
-    local ColorIndex = 1
+    local PaletteOverlay = Instance.new("ImageLabel")
+    PaletteOverlay.Size = UDim2.new(1, 0, 1, 0)
+    PaletteOverlay.BackgroundTransparency = 1
+    PaletteOverlay.Image = "rbxassetid://4155801252"
+    PaletteOverlay.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    PaletteOverlay.Parent = Palette
 
-    ColorBox.MouseButton1Click:Connect(function()
-        ColorIndex = ColorIndex % #PresetColors + 1
-        CurrentColor = PresetColors[ColorIndex]
-        ColorBox.BackgroundColor3 = CurrentColor
+    local PaletteCursor = Instance.new("Frame")
+    PaletteCursor.AnchorPoint = Vector2.new(0.5, 0.5)
+    PaletteCursor.Position = UDim2.new(1, 0, 0, 0)
+    PaletteCursor.Size = UDim2.new(0, 8, 0, 8)
+    PaletteCursor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    PaletteCursor.BorderSizePixel = 0
+    PaletteCursor.Parent = Palette
+    Utility:Corner(PaletteCursor, 4)
+    Utility:Stroke(PaletteCursor, Color3.fromRGB(0, 0, 0), 2)
+
+    -- Слайдер Hue
+    local HueSlider = Instance.new("ImageButton")
+    HueSlider.Position = UDim2.new(1, -30, 0, 10)
+    HueSlider.Size = UDim2.new(0, 20, 0, 150)
+    HueSlider.BackgroundTransparency = 1
+    HueSlider.Image = "rbxassetid://3641079629"
+    HueSlider.AutoButtonColor = false
+    HueSlider.Parent = PickerWindow
+    Utility:Corner(HueSlider, 5)
+
+    local HueCursor = Instance.new("Frame")
+    HueCursor.AnchorPoint = Vector2.new(0.5, 0.5)
+    HueCursor.Position = UDim2.new(0.5, 0, 0, 0)
+    HueCursor.Size = UDim2.new(1, 4, 0, 4)
+    HueCursor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    HueCursor.BorderSizePixel = 0
+    HueCursor.Parent = HueSlider
+    Utility:Stroke(HueCursor, Color3.fromRGB(0, 0, 0), 2)
+
+    -- Превью цвета
+    local Preview = Instance.new("Frame")
+    Preview.Position = UDim2.new(0, 10, 0, 170)
+    Preview.Size = UDim2.new(1, -20, 0, 30)
+    Preview.BackgroundColor3 = CurrentColor
+    Preview.BorderSizePixel = 0
+    Preview.Parent = PickerWindow
+    Utility:Corner(Preview, 5)
+    Utility:Stroke(Preview, Theme.Border, 1)
+
+    -- RGB текст
+    local RGBLabel = Instance.new("TextLabel")
+    RGBLabel.Size = UDim2.new(1, 0, 1, 0)
+    RGBLabel.BackgroundTransparency = 1
+    RGBLabel.Text = string.format("RGB(%d, %d, %d)", 
+        math.floor(CurrentColor.R * 255),
+        math.floor(CurrentColor.G * 255),
+        math.floor(CurrentColor.B * 255)
+    )
+    RGBLabel.TextColor3 = Theme.Primary
+    RGBLabel.Font = Enum.Font.GothamBold
+    RGBLabel.TextSize = 10
+    RGBLabel.Parent = Preview
+
+    -- Функции обновления цвета
+    local function UpdateColor()
+        local hue = CurrentHue / 360
+        local color = Color3.fromHSV(hue, CurrentSat, CurrentVal)
+        CurrentColor = color
+        ColorBox.BackgroundColor3 = color
+        Preview.BackgroundColor3 = color
+        RGBLabel.Text = string.format("RGB(%d, %d, %d)", 
+            math.floor(color.R * 255),
+            math.floor(color.G * 255),
+            math.floor(color.B * 255)
+        )
+        Palette.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
 
         if callback then
-            pcall(callback, CurrentColor)
+            pcall(callback, color)
+        end
+    end
+
+    -- Обработка палитры
+    local PaletteDragging = false
+    Palette.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            PaletteDragging = true
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            PaletteDragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if PaletteDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local posX = math.clamp((input.Position.X - Palette.AbsolutePosition.X) / Palette.AbsoluteSize.X, 0, 1)
+            local posY = math.clamp((input.Position.Y - Palette.AbsolutePosition.Y) / Palette.AbsoluteSize.Y, 0, 1)
+            
+            CurrentSat = posX
+            CurrentVal = 1 - posY
+            PaletteCursor.Position = UDim2.new(posX, 0, posY, 0)
+            UpdateColor()
+        end
+    end)
+
+    -- Обработка Hue слайдера
+    local HueDragging = false
+    HueSlider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            HueDragging = true
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if HueDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local posY = math.clamp((input.Position.Y - HueSlider.AbsolutePosition.Y) / HueSlider.AbsoluteSize.Y, 0, 1)
+            CurrentHue = posY * 360
+            HueCursor.Position = UDim2.new(0.5, 0, posY, 0)
+            UpdateColor()
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            HueDragging = false
+        end
+    end)
+
+    -- Открытие/закрытие
+    ColorBox.MouseButton1Click:Connect(function()
+        IsOpen = not IsOpen
+        if IsOpen then
+            if ActiveDropdown then
+                ActiveDropdown.Visible = false
+                ActiveDropdown = nil
+            end
+            PickerWindow.Size = UDim2.new(1, 0, 0, 210)
+            PickerWindow.Visible = true
+        else
+            PickerWindow.Visible = false
         end
     end)
 
     table.insert(tab.Elements, ColorPicker)
 
     return {
-        SetColor = function(color)
+        Set = function(color)
             CurrentColor = color
             ColorBox.BackgroundColor3 = color
+            Preview.BackgroundColor3 = color
+            
+            local h, s, v = color:ToHSV()
+            CurrentHue = h * 360
+            CurrentSat = s
+            CurrentVal = v
+            
+            HueCursor.Position = UDim2.new(0.5, 0, h, 0)
+            PaletteCursor.Position = UDim2.new(s, 0, 1 - v, 0)
+            Palette.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
         end,
-        GetColor = function()
+        Get = function()
             return CurrentColor
         end
     }
 end
 
--- Создание Label (текстовая метка)
+-- Создание Label
 function Library:CreateLabel(tab, text)
     local Label = Instance.new("TextLabel")
-    Label.Name = "Label"
-    Label.Size = UDim2.new(1, 0, 0, 30)
-    Label.BackgroundColor3 = Colors.Card
+    Label.Size = UDim2.new(1, 0, 0, 28)
+    Label.BackgroundColor3 = Theme.Card
     Label.BorderSizePixel = 0
     Label.Text = text
-    Label.TextColor3 = Colors.TextSecondary
+    Label.TextColor3 = Theme.Secondary
     Label.Font = Enum.Font.Gotham
-    Label.TextSize = 11
+    Label.TextSize = 10
     Label.TextWrapped = true
     Label.LayoutOrder = #tab.Elements
-    Utility:CreateCorner(Label, 8)
-    Utility:CreatePadding(Label, 10)
+    Utility:Corner(Label, 6)
+    Utility:Padding(Label, 8)
 
     table.insert(tab.Elements, Label)
 
@@ -943,20 +1194,19 @@ end
 
 -- Создание вкладок
 local ESPTab = Library:CreateTab("ESP", "👁️")
-local FarmTab = Library:CreateTab("Фарм", "⚙️")
-local ModTab = Library:CreateTab("Моды", "🛠️")
-local CombatTab = Library:CreateTab("Бой", "⚔️")
-local VisualTab = Library:CreateTab("Визуал", "🎨")
-local ConfigTab = Library:CreateTab("Конфиг", "💾")
+local FarmTab = Library:CreateTab("Farm", "⚙️")
+local ModTab = Library:CreateTab("Mods", "🛠️")
+local CombatTab = Library:CreateTab("Combat", "⚔️")
+local VisualTab = Library:CreateTab("Visual", "🎨")
+local ConfigTab = Library:CreateTab("Config", "💾")
 
 -- ==================== ВКЛАДКА ESP ====================
-Library:CreateSection(ESPTab, "👁️ Основные настройки")
+Library:CreateSection(ESPTab, "ОСНОВНЫЕ НАСТРОЙКИ")
 Library:CreateToggle(ESPTab, "Мастер ESP", _G.VDSettings.ESP.Master, function(v)
     _G.VDSettings.ESP.Master = v
-    print("Master ESP:", v)
 end)
 
-Library:CreateSection(ESPTab, "👤 Игроки")
+Library:CreateSection(ESPTab, "ИГРОКИ")
 Library:CreateToggle(ESPTab, "Отслеживание убийцы", _G.VDSettings.ESP.Players.Killers.Enabled, function(v)
     _G.VDSettings.ESP.Players.Killers.Enabled = v
 end)
@@ -977,21 +1227,13 @@ Library:CreateToggle(ESPTab, "Здоровье выживших", _G.VDSettings.
     _G.VDSettings.ESP.Players.Survivors.Health = v
 end)
 
-Library:CreateToggle(ESPTab, "Счетчик крюков", _G.VDSettings.ESP.Players.Survivors.Hooks, function(v)
-    _G.VDSettings.ESP.Players.Survivors.Hooks = v
-end)
-
-Library:CreateSection(ESPTab, "🔧 Объекты")
+Library:CreateSection(ESPTab, "ОБЪЕКТЫ")
 Library:CreateToggle(ESPTab, "Генераторы", _G.VDSettings.ESP.Objects.Generators.Enabled, function(v)
     _G.VDSettings.ESP.Objects.Generators.Enabled = v
 end)
 
 Library:CreateToggle(ESPTab, "Прогресс генераторов", _G.VDSettings.ESP.Objects.Generators.Progress, function(v)
     _G.VDSettings.ESP.Objects.Generators.Progress = v
-end)
-
-Library:CreateToggle(ESPTab, "ETA генераторов", _G.VDSettings.ESP.Objects.Generators.ETA, function(v)
-    _G.VDSettings.ESP.Objects.Generators.ETA = v
 end)
 
 Library:CreateToggle(ESPTab, "Крюки", _G.VDSettings.ESP.Objects.Hooks.Enabled, function(v)
@@ -1010,8 +1252,8 @@ Library:CreateToggle(ESPTab, "Ворота", _G.VDSettings.ESP.Objects.Gates.Ena
     _G.VDSettings.ESP.Objects.Gates.Enabled = v
 end)
 
-Library:CreateSection(ESPTab, "⚙️ Настройки ESP")
-Library:CreateSelector(ESPTab, "Стиль ESP", {
+Library:CreateSection(ESPTab, "НАСТРОЙКИ")
+Library:CreateDropdown(ESPTab, "Стиль ESP", {
     "Старый",
     "Стандартный",
     "Компактный",
@@ -1021,7 +1263,7 @@ Library:CreateSelector(ESPTab, "Стиль ESP", {
     _G.VDSettings.ESP.Settings.Style = v
 end)
 
-Library:CreateSlider(ESPTab, "Дальность ESP", 100, 2000, _G.VDSettings.ESP.Settings.MaxDistance, "m", function(v)
+Library:CreateSlider(ESPTab, "Дальность", 100, 2000, _G.VDSettings.ESP.Settings.MaxDistance, "m", function(v)
     _G.VDSettings.ESP.Settings.MaxDistance = v
 end)
 
@@ -1033,11 +1275,7 @@ Library:CreateToggle(ESPTab, "Трейсеры", _G.VDSettings.ESP.Settings.Trac
     _G.VDSettings.ESP.Settings.Tracers = v
 end)
 
-Library:CreateToggle(ESPTab, "Радар-миникарта", _G.VDSettings.ESP.Settings.Radar, function(v)
-    _G.VDSettings.ESP.Settings.Radar = v
-end)
-
-Library:CreateSection(ESPTab, "🎨 Цвета ESP")
+Library:CreateSection(ESPTab, "ЦВЕТА")
 Library:CreateColorPicker(ESPTab, "Цвет убийцы", _G.VDSettings.ESP.Colors.Killer, function(v)
     _G.VDSettings.ESP.Colors.Killer = v
 end)
@@ -1054,26 +1292,25 @@ Library:CreateColorPicker(ESPTab, "Генераторы", _G.VDSettings.ESP.Colo
     _G.VDSettings.ESP.Colors.Generators = v
 end)
 
--- ==================== ВКЛАДКА ФАРМ ====================
-Library:CreateSection(FarmTab, "⚙️ Автофарм выжившего")
+-- ==================== ВКЛАДКА FARM ====================
+Library:CreateSection(FarmTab, "АВТОФАРМ ВЫЖИВШЕГО")
 Library:CreateToggle(FarmTab, "Автофарм выжившего", _G.VDSettings.Farm.AutoSurvivor, function(v)
     _G.VDSettings.Farm.AutoSurvivor = v
-    print("Auto Survivor Farm:", v)
 end)
 
 Library:CreateButton(FarmTab, "Мгновенный побег", function()
-    print("Instant escape activated!")
+    print("Instant escape!")
 end)
 
-Library:CreateSection(FarmTab, "🎯 Скиллчеки")
+Library:CreateSection(FarmTab, "СКИЛЛЧЕКИ")
 Library:CreateToggle(FarmTab, "Авто-скиллчек", _G.VDSettings.Farm.AutoSkillCheck, function(v)
     _G.VDSettings.Farm.AutoSkillCheck = v
 end)
 
-Library:CreateSelector(FarmTab, "Режим скиллчека", {
-    "Идеальный",
-    "Обычный",
-    "Гибридный"
+Library:CreateDropdown(FarmTab, "Режим", {
+    "Perfect",
+    "Normal",
+    "Hybrid"
 }, _G.VDSettings.Farm.SkillCheckMode, function(v)
     _G.VDSettings.Farm.SkillCheckMode = v
 end)
@@ -1087,21 +1324,16 @@ Library:CreateToggle(FarmTab, "No Skill Checks", _G.VDSettings.Farm.NoSkillCheck
 end)
 
 Library:CreateButton(FarmTab, "Бафф генератора", function()
-    print("Generator buff activated!")
+    print("Generator buff!")
 end)
 
-Library:CreateSection(FarmTab, "🔪 Фарм убийцы")
-Library:CreateToggle(FarmTab, "Автофарм убийцы", _G.VDSettings.Farm.AutoKiller, function(v)
-    _G.VDSettings.Farm.AutoKiller = v
-end)
-
--- ==================== ВКЛАДКА МОДИФИКАТОРЫ ====================
-Library:CreateSection(ModTab, "🎮 Движение")
+-- ==================== ВКЛАДКА MODS ====================
+Library:CreateSection(ModTab, "ДВИЖЕНИЕ")
 Library:CreateToggle(ModTab, "Буст скорости", _G.VDSettings.Modifiers.SpeedBoost, function(v)
     _G.VDSettings.Modifiers.SpeedBoost = v
 end)
 
-Library:CreateSlider(ModTab, "Множитель скорости", 1, 3, _G.VDSettings.Modifiers.SpeedMultiplier, "x", function(v)
+Library:CreateSlider(ModTab, "Множитель", 1, 3, _G.VDSettings.Modifiers.SpeedMultiplier, "x", function(v)
     _G.VDSettings.Modifiers.SpeedMultiplier = v
 end)
 
@@ -1109,41 +1341,36 @@ Library:CreateToggle(ModTab, "Авто-лунная походка", _G.VDSettin
     _G.VDSettings.Modifiers.AutoMoonwalk = v
 end)
 
-Library:CreateSection(ModTab, "💊 Лечение")
+Library:CreateSection(ModTab, "ЛЕЧЕНИЕ")
 Library:CreateToggle(ModTab, "Мгновенное лечение", _G.VDSettings.Modifiers.InstantHeal, function(v)
     _G.VDSettings.Modifiers.InstantHeal = v
 end)
 
 Library:CreateButton(ModTab, "Мгновенная перевязка", function()
-    print("Instant bandage activated!")
+    print("Instant bandage!")
 end)
 
-Library:CreateSection(ModTab, "🎨 Визуальные эффекты")
-Library:CreateToggle(ModTab, "Радужный персонаж", _G.VDSettings.Modifiers.RainbowCharacter, function(v)
-    _G.VDSettings.Modifiers.RainbowCharacter = v
-end)
-
-Library:CreateSection(ModTab, "🚪 Паллеты и окна")
+Library:CreateSection(ModTab, "ПАЛЛЕТЫ И ОКНА")
 Library:CreateButton(ModTab, "Сбросить все паллеты", function()
-    print("Dropping all pallets...")
+    print("Dropping pallets...")
 end)
 
 Library:CreateButton(ModTab, "Блокировка окон", function()
     print("Blocking windows...")
 end)
 
--- ==================== ВКЛАДКА БОЙ ====================
-Library:CreateSection(CombatTab, "🛡️ Автопарри")
+-- ==================== ВКЛАДКА COMBAT ====================
+Library:CreateSection(CombatTab, "АВТОПАРРИ")
 Library:CreateToggle(CombatTab, "Автопарри", _G.VDSettings.Combat.AutoParry, function(v)
     _G.VDSettings.Combat.AutoParry = v
 end)
 
-Library:CreateSlider(CombatTab, "Дальность парирования", 6, 25, _G.VDSettings.Combat.ParryRange, "m", function(v)
+Library:CreateSlider(CombatTab, "Дальность", 6, 25, _G.VDSettings.Combat.ParryRange, "m", function(v)
     _G.VDSettings.Combat.ParryRange = v
 end)
 
-Library:CreateSelector(CombatTab, "Задержка реакции", {
-    "Мгновенная",
+Library:CreateDropdown(CombatTab, "Задержка", {
+    "Instant",
     "50ms",
     "100ms",
     "150ms",
@@ -1152,7 +1379,7 @@ Library:CreateSelector(CombatTab, "Задержка реакции", {
     _G.VDSettings.Combat.ParryDelay = v
 end)
 
-Library:CreateSection(CombatTab, "🎯 Аимбот")
+Library:CreateSection(CombatTab, "АИМБОТ")
 Library:CreateToggle(CombatTab, "Общий аимбот", _G.VDSettings.Combat.GeneralAimbot, function(v)
     _G.VDSettings.Combat.GeneralAimbot = v
 end)
@@ -1161,25 +1388,21 @@ Library:CreateSlider(CombatTab, "FOV радиус", 50, 500, _G.VDSettings.Comba
     _G.VDSettings.Combat.AimbotFOV = v
 end)
 
-Library:CreateToggle(CombatTab, "Показывать FOV круг", _G.VDSettings.Combat.ShowFOVCircle, function(v)
-    _G.VDSettings.Combat.ShowFOVCircle = v
+Library:CreateSection(CombatTab, "МАСКИРОВАННЫЕ")
+Library:CreateButton(CombatTab, "Richter - Скрытность", function()
+    print("Richter activated")
 end)
 
-Library:CreateSection(CombatTab, "🎭 Маскированные")
-Library:CreateButton(CombatTab, "Рихтер - Скрытность", function()
-    print("Richter buff activated")
+Library:CreateButton(CombatTab, "Alex - Бензопила", function()
+    print("Alex activated")
 end)
 
-Library:CreateButton(CombatTab, "Алекс - Бензопила", function()
-    print("Alex buff activated")
+Library:CreateButton(CombatTab, "Brandon - Скорость", function()
+    print("Brandon activated")
 end)
 
-Library:CreateButton(CombatTab, "Брэндон - Скорость", function()
-    print("Brandon buff activated")
-end)
-
--- ==================== ВКЛАДКА ВИЗУАЛЫ ====================
-Library:CreateSection(VisualTab, "🎨 Графика")
+-- ==================== ВКЛАДКА VISUAL ====================
+Library:CreateSection(VisualTab, "ГРАФИКА")
 Library:CreateToggle(VisualTab, "RTX Graphics", _G.VDSettings.Visuals.RTX, function(v)
     _G.VDSettings.Visuals.RTX = v
 end)
@@ -1187,18 +1410,14 @@ end)
 Library:CreateToggle(VisualTab, "Full Bright", _G.VDSettings.Visuals.FullBright, function(v)
     _G.VDSettings.Visuals.FullBright = v
     
-    -- Реализация Full Bright
     if v then
         game:GetService("Lighting").Brightness = 2
         game:GetService("Lighting").ClockTime = 14
         game:GetService("Lighting").FogEnd = 100000
-        game:GetService("Lighting").GlobalShadows = false
-        game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(128, 128, 128)
     else
         game:GetService("Lighting").Brightness = 1
         game:GetService("Lighting").ClockTime = 12
         game:GetService("Lighting").FogEnd = 100
-        game:GetService("Lighting").GlobalShadows = true
     end
 end)
 
@@ -1212,113 +1431,88 @@ Library:CreateToggle(VisualTab, "No Fog", _G.VDSettings.Visuals.NoFog, function(
     end
 end)
 
-Library:CreateSection(VisualTab, "🎯 Прицел")
+Library:CreateSection(VisualTab, "ПРИЦЕЛ")
 Library:CreateToggle(VisualTab, "Прицел", _G.VDSettings.Visuals.Crosshair, function(v)
     _G.VDSettings.Visuals.Crosshair = v
 end)
 
-Library:CreateSlider(VisualTab, "Размер прицела", 5, 30, _G.VDSettings.Visuals.CrosshairSize, "px", function(v)
-    _G.VDSettings.Visuals.CrosshairSize = v
-end)
+-- ==================== ВКЛАДКА CONFIG ====================
+Library:CreateSection(ConfigTab, "СТАТУС")
+Library:CreateLabel(ConfigTab, _G.VDSettings.Config.Premium and "✓ ПРЕМИУМ" or "✗ FREE")
 
--- ==================== ВКЛАДКА КОНФИГ ====================
-Library:CreateSection(ConfigTab, "🔑 Премиум статус")
-Library:CreateLabel(ConfigTab, _G.VDSettings.Config.Premium and "✓ ПРЕМИУМ АКТИВИРОВАН" or "✗ Бесплатная версия")
-
-Library:CreateSection(ConfigTab, "💾 Управление конфигами")
+Library:CreateSection(ConfigTab, "УПРАВЛЕНИЕ")
 Library:CreateButton(ConfigTab, "Сохранить конфиг", function()
-    local success, result = pcall(function()
-        if writefile then
-            local json = HttpService:JSONEncode(_G.VDSettings)
-            writefile("VDHub_Config.json", json)
-            return "✓ Конфиг сохранен"
-        else
-            return "✗ writefile не поддерживается"
-        end
-    end)
-    print(success and result or "✗ Ошибка сохранения")
+    if writefile then
+        local json = HttpService:JSONEncode(_G.VDSettings)
+        writefile("VDHub_Config.json", json)
+        print("✓ Saved")
+    end
 end)
 
 Library:CreateButton(ConfigTab, "Загрузить конфиг", function()
-    local success, result = pcall(function()
-        if readfile and isfile then
-            if isfile("VDHub_Config.json") then
-                local json = readfile("VDHub_Config.json")
-                _G.VDSettings = HttpService:JSONDecode(json)
-                return "✓ Конфиг загружен"
-            else
-                return "✗ Файл не найден"
-            end
-        else
-            return "✗ readfile не поддерживается"
-        end
-    end)
-    print(success and result or "✗ Ошибка загрузки")
+    if readfile and isfile and isfile("VDHub_Config.json") then
+        local json = readfile("VDHub_Config.json")
+        _G.VDSettings = HttpService:JSONDecode(json)
+        print("✓ Loaded")
+    end
 end)
 
-Library:CreateSection(ConfigTab, "⚠️ Управление")
 Library:CreateButton(ConfigTab, "Сброс настроек", function()
     _G.VDSettings = nil
-    print("✓ Настройки сброшены")
+    print("✓ Reset")
 end)
 
 Library:CreateButton(ConfigTab, "Выгрузить скрипт", function()
     ScreenGui:Destroy()
-    print("✓ Скрипт выгружен")
 end)
 
 -- Делаем GUI перетаскиваемым
-Utility:MakeDraggable(MainContainer, Header)
+Utility:MakeDraggable(Main, TopBar)
 
 -- Открытие первой вкладки
 Library:SelectTab(ESPTab)
 
 -- Анимация появления
-MainContainer.Size = UDim2.new(0, 0, 0, 0)
-Utility:Tween(MainContainer, {Size = UDim2.new(0, 420, 0, 580)}, 0.5)
+Main.Size = UDim2.new(0, 0, 0, 0)
+Utility:Tween(Main, {Size = UDim2.new(0, 360, 0, 480)}, 0.4, Enum.EasingStyle.Back)
 
--- Управление видимостью меню
+-- Управление видимостью
 local MenuVisible = true
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
     if input.KeyCode == _G.VDSettings.Config.MenuKey then
         MenuVisible = not MenuVisible
         ScreenGui.Enabled = MenuVisible
     end
 end)
 
--- Уведомление о загрузке
+-- Уведомление
 task.spawn(function()
-    local Notification = Instance.new("Frame")
-    Notification.AnchorPoint = Vector2.new(0.5, 0)
-    Notification.Position = UDim2.new(0.5, 0, 0, -60)
-    Notification.Size = UDim2.new(0, 320, 0, 50)
-    Notification.BackgroundColor3 = Colors.Card
-    Notification.BorderSizePixel = 0
-    Notification.Parent = ScreenGui
-    Utility:CreateCorner(Notification, 10)
-    Utility:CreateStroke(Notification, Colors.Success, 2)
+    local Notif = Instance.new("Frame")
+    Notif.AnchorPoint = Vector2.new(0.5, 0)
+    Notif.Position = UDim2.new(0.5, 0, 0, -50)
+    Notif.Size = UDim2.new(0, 280, 0, 45)
+    Notif.BackgroundColor3 = Theme.Card
+    Notif.BorderSizePixel = 0
+    Notif.Parent = ScreenGui
+    Utility:Corner(Notif, 8)
+    Utility:Stroke(Notif, Theme.Primary, 1)
 
     local NotifText = Instance.new("TextLabel")
     NotifText.Size = UDim2.new(1, 0, 1, 0)
     NotifText.BackgroundTransparency = 1
-    NotifText.Text = "✓ Violence District Hub загружен"
-    NotifText.TextColor3 = Colors.Success
+    NotifText.Text = "✓ Violence District Hub v4.0"
+    NotifText.TextColor3 = Theme.Primary
     NotifText.Font = Enum.Font.GothamBold
-    NotifText.TextSize = 14
-    NotifText.Parent = Notification
+    NotifText.TextSize = 12
+    NotifText.Parent = Notif
 
-    Utility:Tween(Notification, {Position = UDim2.new(0.5, 0, 0, 20)}, 0.5)
+    Utility:Tween(Notif, {Position = UDim2.new(0.5, 0, 0, 15)}, 0.4)
     task.wait(3)
-    Utility:Tween(Notification, {Position = UDim2.new(0.5, 0, 0, -60)}, 0.5)
-    task.wait(0.5)
-    Notification:Destroy()
+    Utility:Tween(Notif, {Position = UDim2.new(0.5, 0, 0, -50)}, 0.4)
+    task.wait(0.4)
+    Notif:Destroy()
 end)
 
-print("=================================")
-print("Violence District Hub v3.0")
-print("Загружен успешно!")
-print("Нажмите K для открытия меню")
-print("=================================")
+print("Violence District Hub v4.0 loaded!")
+print("Press K to toggle menu")
