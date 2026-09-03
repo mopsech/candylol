@@ -1,1518 +1,1983 @@
--- Violence District Mobile GUI | Full Professional Recode
--- Черно-белая расцветка с Icon Pack
--- Полнофункциональный ColorPicker и выпадающие списки
-
 --[[
-    VIOLENCE DISTRICT HUB v4.0
-    Профессиональная версия для мобильных устройств
-    Черно-белый дизайн с Material Icons
+    Violence District Hub (6locc Logic) 
+    Портировано на Compkiller UI
+    Открытие: Left Alt
 ]]
 
--- Сервисы
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
-local CoreGui = game:GetService("CoreGui")
+local Compkiller = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
 
-local LocalPlayer = Players.LocalPlayer
+-- Конфиг менеджер
+local ConfigManager = Compkiller:ConfigManager({
+    Directory = "VD-6locc",
+    Config = "Settings"
+});
 
--- Глобальные настройки
-_G.VDSettings = _G.VDSettings or {
-    ESP = {
-        Master = false,
-        Players = {
-            Killers = { Enabled = true, Aura = true, Distance = true, Name = true },
-            Survivors = { Enabled = true, Aura = true, Health = true, Hooks = true, Name = true }
-        },
-        Objects = {
-            Generators = { Enabled = true, Progress = true, RepairSpeed = true, ETA = true },
-            Hooks = { Enabled = false },
-            Pallets = { Enabled = false },
-            Windows = { Enabled = false },
-            Gates = { Enabled = true }
-        },
-        Settings = {
-            Style = "Standard",
-            MaxDistance = 1000,
-            DistanceFade = false,
-            Tracers = false
-        },
-        Colors = {
-            Killer = Color3.fromRGB(255, 255, 255),
-            SurvivorHealthy = Color3.fromRGB(200, 200, 200),
-            SurvivorInjured = Color3.fromRGB(150, 150, 150),
-            Generators = Color3.fromRGB(220, 220, 220)
-        }
-    },
-    Farm = {
-        AutoSurvivor = false,
-        AutoSkillCheck = false,
-        SkillCheckMode = "Perfect",
-        PerfectChance = 100,
-        NoSkillChecks = false
-    },
-    Modifiers = {
-        SpeedBoost = false,
-        SpeedMultiplier = 1.5,
-        InstantHeal = false,
-        AutoMoonwalk = false
-    },
-    Combat = {
-        AutoParry = false,
-        ParryRange = 15,
-        ParryDelay = "Instant",
-        GeneralAimbot = false,
-        AimbotFOV = 200
-    },
-    Visuals = {
-        RTX = false,
-        FullBright = false,
-        NoFog = false,
-        Crosshair = false
-    },
-    Config = {
-        Premium = false,
-        MenuKey = Enum.KeyCode.K
-    }
-}
+-- Загрузочный экран
+Compkiller:Loader("rbxassetid://120245531583106", 1.5).yield();
 
--- Черно-белая цветовая схема
-local Theme = {
-    Background = Color3.fromRGB(15, 15, 15),
-    Card = Color3.fromRGB(25, 25, 25),
-    CardHover = Color3.fromRGB(35, 35, 35),
-    Primary = Color3.fromRGB(255, 255, 255),
-    Secondary = Color3.fromRGB(180, 180, 180),
-    Tertiary = Color3.fromRGB(120, 120, 120),
-    Border = Color3.fromRGB(45, 45, 45),
-    Disabled = Color3.fromRGB(60, 60, 60)
-}
+-- Создание окна
+local MenuKey = "LeftAlt";
 
--- Material Design Icons (rbxassetid)
-local Icons = {
-    Eye = "rbxassetid://3926305904",
-    Farm = "rbxassetid://3926307971",
-    Settings = "rbxassetid://3926305904",
-    Combat = "rbxassetid://3926305904",
-    Palette = "rbxassetid://3926305904",
-    Save = "rbxassetid://3926305904",
-    Close = "rbxassetid://3926305904",
-    Check = "rbxassetid://3926305904",
-    ChevronDown = "rbxassetid://3926305904",
-    ChevronRight = "rbxassetid://3926305904",
-    Circle = "rbxassetid://3926305904"
-}
+local Window = Compkiller.new({
+    Name = "6LOCC VD",
+    Keybind = MenuKey,
+    Logo = "rbxassetid://120245531583106",
+    Scale = Compkiller.Scale.Window,
+    TextSize = 15,
+});
 
--- Утилиты
-local Utility = {}
+-- Настройки пользователя
+local UserSettings = Window.UserSettings:Create();
 
-function Utility:Tween(object, properties, duration, style, direction)
-    local tween = TweenService:Create(
-        object,
-        TweenInfo.new(
-            duration or 0.2,
-            style or Enum.EasingStyle.Quad,
-            direction or Enum.EasingDirection.Out
-        ),
-        properties
-    )
-    tween:Play()
-    return tween
-end
+UserSettings:AddColorPicker({
+    Name = "Цвет меню",
+    Default = Compkiller.Colors.Highlight,
+    Callback = function(f)
+        Compkiller.Colors.Highlight = f;
+        Compkiller:RefreshCurrentColor();
+    end,
+});
 
-function Utility:MakeDraggable(frame, handle)
-    local dragging, dragInput, mousePos, framePos
-    handle = handle or frame
+UserSettings:AddKeybind({
+    Name = "Клавиша меню",
+    Default = MenuKey,
+    Callback = function(f)
+        MenuKey = f;
+        Window:SetMenuKey(MenuKey)
+    end,
+});
 
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            mousePos = input.Position
-            framePos = frame.Position
-        end
-    end)
+UserSettings:AddDropdown({
+    Name = "Тема",
+    Values = {"Default", "Dark Green", "Dark Blue", "Purple Rose", "Skeet"},
+    Default = "Default",
+    Callback = function(f)
+        Compkiller:SetTheme(f)
+    end,
+});
 
-    handle.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
+-- Водяной знак
+local Watermark = Window:Watermark();
 
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input == dragInput then
-            local delta = input.Position - mousePos
-            frame.Position = UDim2.new(
-                framePos.X.Scale,
-                framePos.X.Offset + delta.X,
-                framePos.Y.Scale,
-                framePos.Y.Offset + delta.Y
-            )
-        end
-    end)
+Watermark:AddText({
+    Icon = "user",
+    Text = "6LOCC VD",
+});
 
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-end
+Watermark:AddText({
+    Icon = "clock",
+    Text = Compkiller:GetDate(),
+});
 
-function Utility:Corner(parent, radius)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius or 6)
-    corner.Parent = parent
-    return corner
-end
+local Time = Watermark:AddText({
+    Icon = "timer",
+    Text = "TIME",
+});
 
-function Utility:Stroke(parent, color, thickness)
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = color or Theme.Border
-    stroke.Thickness = thickness or 1
-    stroke.Parent = parent
-    return stroke
-end
-
-function Utility:Padding(parent, all)
-    local padding = Instance.new("UIPadding")
-    if type(all) == "table" then
-        padding.PaddingTop = UDim.new(0, all.Top or 0)
-        padding.PaddingBottom = UDim.new(0, all.Bottom or 0)
-        padding.PaddingLeft = UDim.new(0, all.Left or 0)
-        padding.PaddingRight = UDim.new(0, all.Right or 0)
-    else
-        padding.PaddingTop = UDim.new(0, all or 0)
-        padding.PaddingBottom = UDim.new(0, all or 0)
-        padding.PaddingLeft = UDim.new(0, all or 0)
-        padding.PaddingRight = UDim.new(0, all or 0)
+task.spawn(function()
+    while true do task.wait()
+        Time:SetText(Compkiller:GetTimeNow());
     end
-    padding.Parent = parent
-    return padding
-end
-
-function Utility:Icon(parent, iconId, size)
-    local icon = Instance.new("ImageLabel")
-    icon.Size = UDim2.new(0, size or 20, 0, size or 20)
-    icon.BackgroundTransparency = 1
-    icon.Image = iconId
-    icon.ImageColor3 = Theme.Primary
-    icon.Parent = parent
-    return icon
-end
-
--- Создание ScreenGui
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ViolenceDistrictHubV4"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.IgnoreGuiInset = true
-
-if syn and syn.protect_gui then
-    syn.protect_gui(ScreenGui)
-    ScreenGui.Parent = CoreGui
-elseif gethui then
-    ScreenGui.Parent = gethui()
-else
-    ScreenGui.Parent = CoreGui
-end
-
--- Главный контейнер (уменьшенный размер)
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.AnchorPoint = Vector2.new(0.5, 0.5)
-Main.Position = UDim2.new(0.5, 0, 0.5, 0)
-Main.Size = UDim2.new(0, 360, 0, 480)
-Main.BackgroundColor3 = Theme.Background
-Main.BorderSizePixel = 0
-Main.ClipDescendants = true
-Main.Parent = ScreenGui
-Utility:Corner(Main, 12)
-Utility:Stroke(Main, Theme.Border, 1)
-
--- Тень
-local Shadow = Instance.new("ImageLabel")
-Shadow.Name = "Shadow"
-Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-Shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-Shadow.Size = UDim2.new(1, 30, 1, 30)
-Shadow.BackgroundTransparency = 1
-Shadow.Image = "rbxassetid://5554236805"
-Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-Shadow.ImageTransparency = 0.7
-Shadow.ScaleType = Enum.ScaleType.Slice
-Shadow.SliceCenter = Rect.new(23, 23, 277, 277)
-Shadow.ZIndex = -1
-Shadow.Parent = Main
-
--- Топ бар
-local TopBar = Instance.new("Frame")
-TopBar.Name = "TopBar"
-TopBar.Size = UDim2.new(1, 0, 0, 45)
-TopBar.BackgroundColor3 = Theme.Card
-TopBar.BorderSizePixel = 0
-TopBar.Parent = Main
-
-local TopBarBottom = Instance.new("Frame")
-TopBarBottom.Size = UDim2.new(1, 0, 0, 12)
-TopBarBottom.Position = UDim2.new(0, 0, 1, -12)
-TopBarBottom.BackgroundColor3 = Theme.Card
-TopBarBottom.BorderSizePixel = 0
-TopBarBottom.Parent = TopBar
-
--- Логотип текстовый
-local Logo = Instance.new("TextLabel")
-Logo.Position = UDim2.new(0, 12, 0, 0)
-Logo.Size = UDim2.new(0, 150, 1, 0)
-Logo.BackgroundTransparency = 1
-Logo.Text = "VIOLENCE"
-Logo.TextColor3 = Theme.Primary
-Logo.Font = Enum.Font.GothamBold
-Logo.TextSize = 16
-Logo.TextXAlignment = Enum.TextXAlignment.Left
-Logo.Parent = TopBar
-
--- Версия
-local Version = Instance.new("TextLabel")
-Version.Position = UDim2.new(0, 80, 0, 0)
-Version.Size = UDim2.new(0, 80, 1, 0)
-Version.BackgroundTransparency = 1
-Version.Text = "v4.0"
-Version.TextColor3 = Theme.Tertiary
-Version.Font = Enum.Font.Gotham
-Version.TextSize = 10
-Version.TextXAlignment = Enum.TextXAlignment.Left
-Version.Parent = TopBar
-
--- Кнопка закрытия
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.AnchorPoint = Vector2.new(1, 0.5)
-CloseBtn.Position = UDim2.new(1, -8, 0.5, 0)
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.BackgroundColor3 = Theme.Card
-CloseBtn.BorderSizePixel = 0
-CloseBtn.Text = ""
-CloseBtn.AutoButtonColor = false
-CloseBtn.Parent = TopBar
-Utility:Corner(CloseBtn, 6)
-
-local CloseIcon = Instance.new("TextLabel")
-CloseIcon.Size = UDim2.new(1, 0, 1, 0)
-CloseIcon.BackgroundTransparency = 1
-CloseIcon.Text = "×"
-CloseIcon.TextColor3 = Theme.Primary
-CloseIcon.Font = Enum.Font.GothamBold
-CloseIcon.TextSize = 20
-CloseIcon.Parent = CloseBtn
-
-CloseBtn.MouseEnter:Connect(function()
-    Utility:Tween(CloseBtn, {BackgroundColor3 = Theme.CardHover})
 end)
 
-CloseBtn.MouseLeave:Connect(function()
-    Utility:Tween(CloseBtn, {BackgroundColor3 = Theme.Card})
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    Utility:Tween(Main, {Size = UDim2.new(0, 0, 0, 0)}, 0.3)
-    task.wait(0.3)
-    ScreenGui.Enabled = false
-end)
-
--- Контент область
-local Content = Instance.new("Frame")
-Content.Name = "Content"
-Content.Position = UDim2.new(0, 0, 0, 45)
-Content.Size = UDim2.new(1, 0, 1, -100)
-Content.BackgroundTransparency = 1
-Content.Parent = Main
-
--- ScrollingFrame для контента
-local ContentScroll = Instance.new("ScrollingFrame")
-ContentScroll.Size = UDim2.new(1, 0, 1, 0)
-ContentScroll.BackgroundTransparency = 1
-ContentScroll.BorderSizePixel = 0
-ContentScroll.ScrollBarThickness = 2
-ContentScroll.ScrollBarImageColor3 = Theme.Primary
-ContentScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-ContentScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-ContentScroll.Parent = Content
-
-local ContentList = Instance.new("UIListLayout")
-ContentList.Padding = UDim.new(0, 6)
-ContentList.SortOrder = Enum.SortOrder.LayoutOrder
-ContentList.Parent = ContentScroll
-
-Utility:Padding(ContentScroll, {Left = 8, Right = 8, Top = 8, Bottom = 8})
-
--- Нижняя панель табов
-local TabBar = Instance.new("Frame")
-TabBar.Name = "TabBar"
-TabBar.Position = UDim2.new(0, 0, 1, -55)
-TabBar.Size = UDim2.new(1, 0, 0, 55)
-TabBar.BackgroundColor3 = Theme.Card
-TabBar.BorderSizePixel = 0
-TabBar.Parent = Main
-
-local TabBarTop = Instance.new("Frame")
-TabBarTop.Size = UDim2.new(1, 0, 0, 12)
-TabBarTop.BackgroundColor3 = Theme.Card
-TabBarTop.BorderSizePixel = 0
-TabBarTop.Parent = TabBar
-
-local TabBarDivider = Instance.new("Frame")
-TabBarDivider.Size = UDim2.new(1, 0, 0, 1)
-TabBarDivider.BackgroundColor3 = Theme.Border
-TabBarDivider.BorderSizePixel = 0
-TabBarDivider.Parent = TabBar
-
-local TabContainer = Instance.new("Frame")
-TabContainer.Position = UDim2.new(0, 8, 0, 6)
-TabContainer.Size = UDim2.new(1, -16, 1, -12)
-TabContainer.BackgroundTransparency = 1
-TabContainer.Parent = TabBar
-
-local TabList = Instance.new("UIListLayout")
-TabList.FillDirection = Enum.FillDirection.Horizontal
-TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-TabList.VerticalAlignment = Enum.VerticalAlignment.Center
-TabList.Padding = UDim.new(0, 4)
-TabList.Parent = TabContainer
-
--- Переменные
-local CurrentTab = nil
-local Tabs = {}
-local ActiveDropdown = nil
-
--- Библиотека UI
-local Library = {}
-
--- Создание вкладки
-function Library:CreateTab(name, icon)
-    local Tab = {}
-    Tab.Name = name
-    Tab.Elements = {}
-
-    local TabBtn = Instance.new("TextButton")
-    TabBtn.Name = name
-    TabBtn.Size = UDim2.new(0, 52, 0, 45)
-    TabBtn.BackgroundColor3 = Theme.Background
-    TabBtn.BorderSizePixel = 0
-    TabBtn.AutoButtonColor = false
-    TabBtn.Text = ""
-    TabBtn.Parent = TabContainer
-    Utility:Corner(TabBtn, 8)
-
-    local TabIcon = Instance.new("TextLabel")
-    TabIcon.Position = UDim2.new(0, 0, 0, 4)
-    TabIcon.Size = UDim2.new(1, 0, 0, 20)
-    TabIcon.BackgroundTransparency = 1
-    TabIcon.Text = icon
-    TabIcon.TextColor3 = Theme.Secondary
-    TabIcon.Font = Enum.Font.GothamBold
-    TabIcon.TextSize = 16
-    TabIcon.Parent = TabBtn
-
-    local TabLabel = Instance.new("TextLabel")
-    TabLabel.Position = UDim2.new(0, 0, 0, 26)
-    TabLabel.Size = UDim2.new(1, 0, 0, 14)
-    TabLabel.BackgroundTransparency = 1
-    TabLabel.Text = name
-    TabLabel.TextColor3 = Theme.Secondary
-    TabLabel.Font = Enum.Font.Gotham
-    TabLabel.TextSize = 8
-    TabLabel.Parent = TabBtn
-
-    local Indicator = Instance.new("Frame")
-    Indicator.AnchorPoint = Vector2.new(0.5, 1)
-    Indicator.Position = UDim2.new(0.5, 0, 1, -2)
-    Indicator.Size = UDim2.new(0.6, 0, 0, 2)
-    Indicator.BackgroundColor3 = Theme.Primary
-    Indicator.BorderSizePixel = 0
-    Indicator.Visible = false
-    Indicator.Parent = TabBtn
-    Utility:Corner(Indicator, 1)
-
-    Tab.Button = TabBtn
-    Tab.Icon = TabIcon
-    Tab.Label = TabLabel
-    Tab.Indicator = Indicator
-
-    TabBtn.MouseButton1Click:Connect(function()
-        Library:SelectTab(Tab)
-    end)
-
-    TabBtn.MouseEnter:Connect(function()
-        if CurrentTab ~= Tab then
-            Utility:Tween(TabBtn, {BackgroundColor3 = Theme.CardHover})
-        end
-    end)
-
-    TabBtn.MouseLeave:Connect(function()
-        if CurrentTab ~= Tab then
-            Utility:Tween(TabBtn, {BackgroundColor3 = Theme.Background})
-        end
-    end)
-
-    table.insert(Tabs, Tab)
-    return Tab
-end
-
--- Выбор вкладки
-function Library:SelectTab(tab)
-    if CurrentTab then
-        Utility:Tween(CurrentTab.Button, {BackgroundColor3 = Theme.Background})
-        Utility:Tween(CurrentTab.Icon, {TextColor3 = Theme.Secondary})
-        Utility:Tween(CurrentTab.Label, {TextColor3 = Theme.Secondary})
-        CurrentTab.Indicator.Visible = false
-    end
-
-    CurrentTab = tab
-    Utility:Tween(tab.Button, {BackgroundColor3 = Theme.Card})
-    Utility:Tween(tab.Icon, {TextColor3 = Theme.Primary})
-    Utility:Tween(tab.Label, {TextColor3 = Theme.Primary})
-    tab.Indicator.Visible = true
-
-    -- Очистка контента
-    for _, child in pairs(ContentScroll:GetChildren()) do
-        if not child:IsA("UIListLayout") and not child:IsA("UIPadding") then
-            child:Destroy()
-        end
-    end
-
-    -- Загрузка элементов
-    for _, element in pairs(tab.Elements) do
-        element.Parent = ContentScroll
-    end
-
-    ContentScroll.CanvasPosition = Vector2.new(0, 0)
-end
-
--- Создание секции
-function Library:CreateSection(tab, text)
-    local Section = Instance.new("Frame")
-    Section.Name = "Section"
-    Section.Size = UDim2.new(1, 0, 0, 28)
-    Section.BackgroundTransparency = 1
-    Section.LayoutOrder = #tab.Elements
-
-    local SectionLabel = Instance.new("TextLabel")
-    SectionLabel.Size = UDim2.new(1, 0, 1, 0)
-    SectionLabel.BackgroundTransparency = 1
-    SectionLabel.Text = text
-    SectionLabel.TextColor3 = Theme.Primary
-    SectionLabel.Font = Enum.Font.GothamBold
-    SectionLabel.TextSize = 11
-    SectionLabel.TextXAlignment = Enum.TextXAlignment.Left
-    SectionLabel.Parent = Section
-    Utility:Padding(SectionLabel, {Left = 4})
-
-    table.insert(tab.Elements, Section)
-    return Section
-end
-
--- Создание Toggle
-function Library:CreateToggle(tab, text, default, callback)
-    local Toggle = Instance.new("Frame")
-    Toggle.Name = "Toggle"
-    Toggle.Size = UDim2.new(1, 0, 0, 38)
-    Toggle.BackgroundColor3 = Theme.Card
-    Toggle.BorderSizePixel = 0
-    Toggle.LayoutOrder = #tab.Elements
-    Utility:Corner(Toggle, 6)
-
-    local Label = Instance.new("TextLabel")
-    Label.Position = UDim2.new(0, 10, 0, 0)
-    Label.Size = UDim2.new(1, -60, 1, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text = text
-    Label.TextColor3 = Theme.Primary
-    Label.Font = Enum.Font.Gotham
-    Label.TextSize = 11
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.TextWrapped = true
-    Label.Parent = Toggle
-
-    local Switch = Instance.new("TextButton")
-    Switch.AnchorPoint = Vector2.new(1, 0.5)
-    Switch.Position = UDim2.new(1, -10, 0.5, 0)
-    Switch.Size = UDim2.new(0, 42, 0, 22)
-    Switch.BackgroundColor3 = Theme.Disabled
-    Switch.BorderSizePixel = 0
-    Switch.AutoButtonColor = false
-    Switch.Text = ""
-    Switch.Parent = Toggle
-    Utility:Corner(Switch, 11)
-
-    local Knob = Instance.new("Frame")
-    Knob.Position = UDim2.new(0, 2, 0.5, 0)
-    Knob.AnchorPoint = Vector2.new(0, 0.5)
-    Knob.Size = UDim2.new(0, 18, 0, 18)
-    Knob.BackgroundColor3 = Theme.Primary
-    Knob.BorderSizePixel = 0
-    Knob.Parent = Switch
-    Utility:Corner(Knob, 9)
-
-    local State = default or false
-
-    local function Update()
-        if State then
-            Utility:Tween(Switch, {BackgroundColor3 = Theme.Primary})
-            Utility:Tween(Knob, {
-                Position = UDim2.new(1, -20, 0.5, 0),
-                BackgroundColor3 = Theme.Background
-            })
-        else
-            Utility:Tween(Switch, {BackgroundColor3 = Theme.Disabled})
-            Utility:Tween(Knob, {
-                Position = UDim2.new(0, 2, 0.5, 0),
-                BackgroundColor3 = Theme.Primary
-            })
-        end
-
-        if callback then
-            pcall(callback, State)
-        end
-    end
-
-    if State then
-        Switch.BackgroundColor3 = Theme.Primary
-        Knob.Position = UDim2.new(1, -20, 0.5, 0)
-        Knob.BackgroundColor3 = Theme.Background
-    end
-
-    Switch.MouseButton1Click:Connect(function()
-        State = not State
-        Update()
-    end)
-
-    table.insert(tab.Elements, Toggle)
-
-    return {
-        Set = function(val)
-            State = val
-            Update()
-        end,
-        Get = function()
-            return State
-        end
-    }
-end
-
--- Создание Slider
-function Library:CreateSlider(tab, text, min, max, default, suffix, callback)
-    local Slider = Instance.new("Frame")
-    Slider.Name = "Slider"
-    Slider.Size = UDim2.new(1, 0, 0, 48)
-    Slider.BackgroundColor3 = Theme.Card
-    Slider.BorderSizePixel = 0
-    Slider.LayoutOrder = #tab.Elements
-    Utility:Corner(Slider, 6)
-
-    local Label = Instance.new("TextLabel")
-    Label.Position = UDim2.new(0, 10, 0, 6)
-    Label.Size = UDim2.new(0.6, 0, 0, 14)
-    Label.BackgroundTransparency = 1
-    Label.Text = text
-    Label.TextColor3 = Theme.Primary
-    Label.Font = Enum.Font.Gotham
-    Label.TextSize = 11
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Slider
-
-    local Value = Instance.new("TextLabel")
-    Value.Position = UDim2.new(0.6, 0, 0, 6)
-    Value.Size = UDim2.new(0.4, -10, 0, 14)
-    Value.BackgroundTransparency = 1
-    Value.Text = tostring(default) .. (suffix or "")
-    Value.TextColor3 = Theme.Primary
-    Value.Font = Enum.Font.GothamBold
-    Value.TextSize = 11
-    Value.TextXAlignment = Enum.TextXAlignment.Right
-    Value.Parent = Slider
-
-    local Track = Instance.new("Frame")
-    Track.Position = UDim2.new(0, 10, 1, -18)
-    Track.Size = UDim2.new(1, -20, 0, 4)
-    Track.BackgroundColor3 = Theme.Disabled
-    Track.BorderSizePixel = 0
-    Track.Parent = Slider
-    Utility:Corner(Track, 2)
-
-    local Fill = Instance.new("Frame")
-    Fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    Fill.BackgroundColor3 = Theme.Primary
-    Fill.BorderSizePixel = 0
-    Fill.Parent = Track
-    Utility:Corner(Fill, 2)
-
-    local Thumb = Instance.new("Frame")
-    Thumb.AnchorPoint = Vector2.new(0.5, 0.5)
-    Thumb.Position = UDim2.new(1, 0, 0.5, 0)
-    Thumb.Size = UDim2.new(0, 12, 0, 12)
-    Thumb.BackgroundColor3 = Theme.Primary
-    Thumb.BorderSizePixel = 0
-    Thumb.Parent = Fill
-    Utility:Corner(Thumb, 6)
-
-    local CurrentValue = default
-    local Dragging = false
-
-    local function Update(input)
-        local pos = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
-        CurrentValue = math.floor(min + (max - min) * pos)
-        Fill.Size = UDim2.new(pos, 0, 1, 0)
-        Value.Text = tostring(CurrentValue) .. (suffix or "")
-
-        if callback then
-            pcall(callback, CurrentValue)
-        end
-    end
-
-    Track.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            Dragging = true
-            Update(input)
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            Update(input)
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            Dragging = false
-        end
-    end)
-
-    table.insert(tab.Elements, Slider)
-
-    return {
-        Set = function(val)
-            CurrentValue = math.clamp(val, min, max)
-            local pos = (CurrentValue - min) / (max - min)
-            Fill.Size = UDim2.new(pos, 0, 1, 0)
-            Value.Text = tostring(CurrentValue) .. (suffix or "")
-        end,
-        Get = function()
-            return CurrentValue
-        end
-    }
-end
-
--- Создание Button
-function Library:CreateButton(tab, text, callback)
-    local Button = Instance.new("TextButton")
-    Button.Name = "Button"
-    Button.Size = UDim2.new(1, 0, 0, 36)
-    Button.BackgroundColor3 = Theme.Card
-    Button.BorderSizePixel = 0
-    Button.AutoButtonColor = false
-    Button.Text = text
-    Button.TextColor3 = Theme.Primary
-    Button.Font = Enum.Font.GothamBold
-    Button.TextSize = 12
-    Button.LayoutOrder = #tab.Elements
-    Utility:Corner(Button, 6)
-    Utility:Stroke(Button, Theme.Border, 1)
-
-    Button.MouseEnter:Connect(function()
-        Utility:Tween(Button, {BackgroundColor3 = Theme.CardHover})
-    end)
-
-    Button.MouseLeave:Connect(function()
-        Utility:Tween(Button, {BackgroundColor3 = Theme.Card})
-    end)
-
-    Button.MouseButton1Click:Connect(function()
-        Utility:Tween(Button, {BackgroundColor3 = Theme.Background}, 0.1)
-        task.wait(0.1)
-        Utility:Tween(Button, {BackgroundColor3 = Theme.Card}, 0.1)
-
-        if callback then
-            pcall(callback)
-        end
-    end)
-
-    table.insert(tab.Elements, Button)
-    return Button
-end
-
--- Создание Dropdown (выпадающий список)
-function Library:CreateDropdown(tab, text, options, default, callback)
-    local Dropdown = Instance.new("Frame")
-    Dropdown.Name = "Dropdown"
-    Dropdown.Size = UDim2.new(1, 0, 0, 38)
-    Dropdown.BackgroundColor3 = Theme.Card
-    Dropdown.BorderSizePixel = 0
-    Dropdown.ClipDescendants = false
-    Dropdown.LayoutOrder = #tab.Elements
-    Utility:Corner(Dropdown, 6)
-
-    local Label = Instance.new("TextLabel")
-    Label.Position = UDim2.new(0, 10, 0, 0)
-    Label.Size = UDim2.new(0.4, 0, 1, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text = text
-    Label.TextColor3 = Theme.Primary
-    Label.Font = Enum.Font.Gotham
-    Label.TextSize = 11
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Dropdown
-
-    local CurrentIndex = 1
-    for i, v in ipairs(options) do
-        if v == default then
-            CurrentIndex = i
-            break
-        end
-    end
-
-    local Selected = Instance.new("TextButton")
-    Selected.Position = UDim2.new(0.45, 0, 0.5, 0)
-    Selected.AnchorPoint = Vector2.new(0, 0.5)
-    Selected.Size = UDim2.new(0.5, -10, 0, 26)
-    Selected.BackgroundColor3 = Theme.Background
-    Selected.BorderSizePixel = 0
-    Selected.AutoButtonColor = false
-    Selected.Text = ""
-    Selected.Parent = Dropdown
-    Utility:Corner(Selected, 5)
-    Utility:Stroke(Selected, Theme.Border, 1)
-
-    local SelectedText = Instance.new("TextLabel")
-    SelectedText.Position = UDim2.new(0, 8, 0, 0)
-    SelectedText.Size = UDim2.new(1, -24, 1, 0)
-    SelectedText.BackgroundTransparency = 1
-    SelectedText.Text = options[CurrentIndex]
-    SelectedText.TextColor3 = Theme.Primary
-    SelectedText.Font = Enum.Font.Gotham
-    SelectedText.TextSize = 10
-    SelectedText.TextXAlignment = Enum.TextXAlignment.Left
-    SelectedText.TextTruncate = Enum.TextTruncate.AtEnd
-    SelectedText.Parent = Selected
-
-    local Arrow = Instance.new("TextLabel")
-    Arrow.AnchorPoint = Vector2.new(1, 0.5)
-    Arrow.Position = UDim2.new(1, -6, 0.5, 0)
-    Arrow.Size = UDim2.new(0, 12, 0, 12)
-    Arrow.BackgroundTransparency = 1
-    Arrow.Text = "▼"
-    Arrow.TextColor3 = Theme.Secondary
-    Arrow.Font = Enum.Font.GothamBold
-    Arrow.TextSize = 8
-    Arrow.Parent = Selected
-
-    -- Выпадающий список
-    local DropList = Instance.new("Frame")
-    DropList.Position = UDim2.new(0.45, 0, 1, 4)
-    DropList.Size = UDim2.new(0.5, -10, 0, 0)
-    DropList.BackgroundColor3 = Theme.Card
-    DropList.BorderSizePixel = 0
-    DropList.Visible = false
-    DropList.ZIndex = 10
-    DropList.Parent = Dropdown
-    Utility:Corner(DropList, 5)
-    Utility:Stroke(DropList, Theme.Border, 1)
-
-    local DropScroll = Instance.new("ScrollingFrame")
-    DropScroll.Size = UDim2.new(1, 0, 1, 0)
-    DropScroll.BackgroundTransparency = 1
-    DropScroll.BorderSizePixel = 0
-    DropScroll.ScrollBarThickness = 2
-    DropScroll.ScrollBarImageColor3 = Theme.Primary
-    DropScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-    DropScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    DropScroll.Parent = DropList
-
-    local DropLayout = Instance.new("UIListLayout")
-    DropLayout.Padding = UDim.new(0, 2)
-    DropLayout.Parent = DropScroll
-
-    Utility:Padding(DropScroll, 4)
-
-    local IsOpen = false
-
-    local function Toggle()
-        IsOpen = not IsOpen
-
-        if IsOpen then
-            if ActiveDropdown and ActiveDropdown ~= DropList then
-                ActiveDropdown.Visible = false
-            end
-            ActiveDropdown = DropList
-
-            local itemHeight = 28
-            local maxHeight = math.min(#options * itemHeight + 8, 150)
-            DropList.Size = UDim2.new(0.5, -10, 0, maxHeight)
-            DropList.Visible = true
-            Utility:Tween(Arrow, {Rotation = 180})
-        else
-            DropList.Visible = false
-            Utility:Tween(Arrow, {Rotation = 0})
-            ActiveDropdown = nil
-        end
-    end
-
-    Selected.MouseButton1Click:Connect(Toggle)
-
-    -- Создание опций
-    for i, option in ipairs(options) do
-        local Option = Instance.new("TextButton")
-        Option.Size = UDim2.new(1, 0, 0, 26)
-        Option.BackgroundColor3 = i == CurrentIndex and Theme.Background or Theme.Card
-        Option.BorderSizePixel = 0
-        Option.AutoButtonColor = false
-        Option.Text = option
-        Option.TextColor3 = Theme.Primary
-        Option.Font = Enum.Font.Gotham
-        Option.TextSize = 10
-        Option.TextXAlignment = Enum.TextXAlignment.Left
-        Option.Parent = DropScroll
-        Utility:Corner(Option, 4)
-        Utility:Padding(Option, {Left = 8})
-
-        Option.MouseEnter:Connect(function()
-            if i ~= CurrentIndex then
-                Utility:Tween(Option, {BackgroundColor3 = Theme.CardHover})
-            end
-        end)
-
-        Option.MouseLeave:Connect(function()
-            if i ~= CurrentIndex then
-                Utility:Tween(Option, {BackgroundColor3 = Theme.Card})
-            end
-        end)
-
-        Option.MouseButton1Click:Connect(function()
-            -- Сброс предыдущего выбора
-            for _, child in pairs(DropScroll:GetChildren()) do
-                if child:IsA("TextButton") then
-                    child.BackgroundColor3 = Theme.Card
+Watermark:AddText({
+    Icon = "server",
+    Text = Compkiller.Version,
+});
+
+-- ============================================
+--  ГЛОБАЛЬНЫЕ НАСТРОЙКИ (6locc стиль)
+-- ============================================
+
+_G.Settings = _G.Settings or {
+    -- ESP
+    MasterESP = true,
+    KillerESP = { Enabled = false, Aura = true, Distance = true, SelectedKiller = true, ShowName = true },
+    SurvivorESP = { Enabled = false, Aura = true, Distance = true, HealthState = true, ShowHookCount = true, ShowName = true, CensorNames = false },
+    GeneratorESP = { Enabled = false, Aura = true, ShowProgress = true, ShowRepairSpeed = true, ShowETA = true, AlertThresholdEnabled = true, AlertThreshold = 90, ShowDistance = true, ShowRepairingCount = true, NoText = false },
+    HookESP = { Enabled = false, Aura = true, ShowDistance = true, NoText = false },
+    PalletESP = { Enabled = false, Aura = true, ShowDistance = true, NoText = false },
+    VaultESP = { Enabled = false, Aura = true, ShowDistance = true, NoText = false },
+    GateESP = { Enabled = false, Aura = true, ShowProgress = true, ShowDistance = true, NoText = false },
+    BloodESP = { Enabled = false, Aura = true, ShowDistance = true, NoText = false },
+    SCPESP = { Enabled = false, Aura = true, ShowDistance = true, NoText = false },
+    ESPStyle = "Standard",
+    ESPBackground = false,
+    ESPDistanceFade = false,
+    ESPDistanceFadePlayers = true,
+    ESPDistanceFadeMap = true,
+    ESPFadeStart = 50,
+    ESPFadeMax = 200,
+    ESPRange = 999999,
+    ESPTracers = false,
+    TracerTarget = "Both",
+    TracerStyle = "Line",
+    TracerOrigin = "Bottom",
+    TracerColorMode = "Role Color",
+    Minimap = { Enabled = false },
+    ESPColors = {
+        Killer = Color3.fromRGB(255, 50, 50),
+        SurvivorHealthy = Color3.fromRGB(50, 255, 100),
+        SurvivorInjured = Color3.fromRGB(255, 150, 0),
+        SurvivorKnocked = Color3.fromRGB(255, 50, 50),
+        Generator = Color3.fromRGB(0, 200, 255),
+        Hook = Color3.fromRGB(255, 150, 0),
+        Pallet = Color3.fromRGB(180, 130, 70),
+        Vault = Color3.fromRGB(180, 180, 180),
+        BloodEffect = Color3.fromRGB(180, 0, 0),
+        Gate = Color3.fromRGB(255, 255, 0),
+        SCP = Color3.fromRGB(150, 0, 255),
+        Tracer = Color3.fromRGB(255, 255, 255),
+    },
+    
+    -- Farm
+    AutoFarmSurvivor = false,
+    AutoServerHopEscape = false,
+    AutoFarmAFKTotal = false,
+    AutoFarmKiller = false,
+    AntiWiggle = false,
+    AutoSkillCheck = false,
+    InstantSkillCheck = false,
+    SkillCheckMode = "Perfect",
+    PerfectHitRate = 100,
+    SkillCheckSpeedVal = 1,
+    NoSkillChecks = false,
+    FlowstatePerk = false,
+    FlowstateCooldown = 15,
+    HideFlowstateUI = false,
+    
+    -- Modifiers
+    SpeedBoostEnabled = false,
+    SpeedBoost = 1.3,
+    CountSpeedPerks = true,
+    VaultSpeed = 1,
+    ModifierTeamFilter = "Both",
+    InstantHeal = false,
+    NoclipVaultsPallets = false,
+    AutoFleeKiller = false,
+    AutoMoonwalk = false,
+    ReverseMoonwalk = false,
+    MoonwalkDisableOnVault = true,
+    MoonwalkSwaySpeed = 14,
+    MoonwalkSwayAmplitude = 0.65,
+    MoonwalkShaking = 0.05,
+    MoonwalkMovementBased = false,
+    RainbowCharacter = false,
+    RainbowCharacterMode = "Highlight",
+    RemoteDropPallet = false,
+    RemoteDropPalletKey = "None",
+    WalkWhileEmoting = true,
+    CustomEmoteWheel = true,
+    EmoteWheelKey = "F",
+    EmoteWheelMode = "Hold",
+    
+    -- Combat
+    AutoParry = false,
+    ParryUseItem = false,
+    ParryRange = 14,
+    ParryPingCompensation = true,
+    ParryRangeESP = false,
+    ParryDelay = 0,
+    ParryFacingCheck = true,
+    HideParryUI = false,
+    FrenzyParry = false,
+    IgnoreAbysswalkerLunge = false,
+    SimulateParryAnimation = false,
+    NoStun = false,
+    
+    -- Revolver
+    RevolverAutofarm = false,
+    RevolverAimbot = { Enabled = false, Key = "MouseButton2", TargetPart = "UpperTorso", Priority = "Nearest", Smoothness = 0, Radius = 150, OffsetX = 12, OffsetY = 5, ShowFOV = false, ShowCrosshair = false, CrosshairStyle = "Classic", CrosshairColor = Color3.fromRGB(0, 255, 255), CrosshairSize = 10, PredictionEnabled = true, BulletVelocity = 800 },
+    RevolverSilentAim = { Enabled = false, Priority = "Nearest", FOVRadius = 200, ShowFOV = true, FOVColor = "Cyan", Target = "Both Teams", TargetHighlightEnabled = true, TargetHighlightColor = "Cyan", TargetHighlightMode = "Always on Top", TargetHighlightFillTransparency = 0.5, TargetHighlightOutlineTransparency = 0 },
+    BypassToFRestrictions = false,
+    
+    -- Veil
+    SpearTrajectory = false,
+    SpearTrajectoryNoclip = false,
+    SpearTrajectoryColor = "Cyan",
+    SpearAimbot = { Enabled = false, Key = "MouseButton2", TargetPart = "UpperTorso", Priority = "Nearest", Smoothness = 0.05, Radius = 150, Speed = 150, Gravity = 98 },
+    SpearSilentAim = { Enabled = false, Priority = "Nearest", FOVRadius = 240, ShowFOV = true, FOVColor = "Yellow", TargetHighlightEnabled = true, TargetHighlightColor = "Red", TargetHighlightMode = "Always on Top", TargetHighlightFillTransparency = 0.5, TargetHighlightOutlineTransparency = 0 },
+    
+    -- Stalker
+    Stalker = {
+        NoCooldown = false,
+        KillGrab = false,
+        AutoDodge = false,
+        AutoDodgeDistance = 15,
+        StalkWhileMoving = false,
+        InfiniteCorrupt = false,
+    },
+    
+    -- Masked
+    Masked = { CurrentBuff = "Normal" },
+    
+    -- Visuals
+    RTXGraphics = false,
+    CinematicDOF = false,
+    GraphicsTint = "Default",
+    VisualPreset = "Default",
+    VisualSaturation = 0.25,
+    VisualContrast = 0.12,
+    CustomFogEnabled = false,
+    CustomFogColor = Color3.fromRGB(120, 160, 200),
+    CustomFogStart = 0,
+    CustomFogEnd = 800,
+    CustomLightingEnabled = false,
+    CustomLightingColor = Color3.fromRGB(255, 255, 255),
+    TimeOfDayPreset = "Default",
+    CustomBloomEnabled = false,
+    BloomIntensity = 0.8,
+    BloomSize = 24,
+    BloomThreshold = 0.85,
+    SunRaysEnabled = false,
+    SunRaysIntensity = 0.1,
+    AtmosphereDensity = 0.3,
+    InfiniteZoom = false,
+    FOV = 70,
+    StretchedResolutionMode = "Normal",
+    ShowCrosshair = false,
+    CrosshairStyle = "Classic",
+    CrosshairColor = Color3.fromRGB(0, 255, 255),
+    CrosshairSize = 10,
+    NoFog = false,
+    FullBright = false,
+    NoFlashlightBlind = false,
+    KillerThirdPerson = false,
+    FlashlightEffect = "None",
+    FlashlightColor = Color3.fromRGB(255, 255, 255),
+    KillerStainColor = Color3.fromRGB(255, 0, 0),
+    
+    -- Network
+    FakeLag = false,
+    FakeLagMs = 200,
+    Desync = false,
+    EnableDesyncGhost = true,
+    DesyncGhostAlwaysOnTop = true,
+    DesyncGhostTransparency = 0.5,
+    DesyncGhostColor = "Accent",
+    
+    -- UI
+    ShowInfoBanner = false,
+    InfoBannerShowMap = true,
+    InfoBannerShowKiller = true,
+    InfoBannerShowPerks = true,
+    InfoBannerShowFPS = true,
+    InfoBannerShowPing = true,
+    DisableAllNotifications = false,
+    ShowToggleNotifications = true,
+    ShowActiveFeatures = false,
+    ShowSpectatorList = false,
+    ShowHotkeyOverlay = false,
+    Theme = "Default",
+    HideLivePlayersMode = "Normal",
+    CustomOverlayUrl = "rbxassetid://71824917786372",
+    CustomBackground = { Enabled = false, AssetId = "", LocalFile = "", Overlay = 40, ScaleType = "Crop" },
+    
+    -- Keybinds
+    Keybinds = {
+        ToggleUI = "K",
+        ToggleSpeedBoost = "None",
+        AutoMoonwalk = "None",
+        FlowstatePerk = "None",
+        AutoSkillCheck = "None",
+        KillerTrack = "None",
+        SurvivorTrack = "None",
+        InstantEscape = "None",
+        CancelGen = "None",
+        NoclipVaultsPallets = "None",
+        FakeVault = "None",
+        AutoParry = "None",
+        RevolverAimbot = "None",
+        RevolverAutofarm = "None",
+        InstantHeal = "None",
+        InstantBandage = "None",
+        DropAllPallets = "None",
+        BlockVaultPalletInteraction = "None",
+        NoFog = "None",
+        FullBright = "None",
+        NoFlashlightBlind = "None",
+        StopEmote = "None",
+        Masked_Richter = "None",
+        Masked_Alex = "None",
+        Masked_Brandon = "None",
+        Masked_Rabbit = "None",
+        Masked_Cobra = "None",
+        Masked_Tony = "None",
+        Masked_Normal = "None",
+        InfiniteLunge = "None",
+    },
+};
+
+-- ============================================
+--  ВКЛАДКИ GUI
+-- ============================================
+
+-- Категория: ESP
+Window:DrawCategory({ Name = "ESP" });
+
+local EspTab = Window:DrawTab({
+    Name = "ESP",
+    Icon = "eye",
+    EnableScrolling = true
+});
+
+-- Секция: Master Controls
+local EspMaster = EspTab:DrawSection({ Name = "Мастер", Position = 'left' });
+
+EspMaster:AddToggle({
+    Name = "Мастер ESP",
+    Flag = "MasterESP",
+    Default = _G.Settings.MasterESP,
+    Callback = function(v)
+        _G.Settings.MasterESP = v
+    end,
+});
+
+-- Секция: Игроки
+local EspPlayers = EspTab:DrawSection({ Name = "Игроки", Position = 'right' });
+
+EspPlayers:AddToggle({
+    Name = "Отслеживание убийцы",
+    Flag = "KillerESP",
+    Default = _G.Settings.KillerESP.Enabled,
+    Callback = function(v)
+        _G.Settings.KillerESP.Enabled = v
+    end,
+});
+
+local KillerOpt = EspPlayers:AddOption();
+KillerOpt:AddToggle({
+    Name = "Подсветка",
+    Flag = "KillerESP_Aura",
+    Default = _G.Settings.KillerESP.Aura,
+    Callback = function(v)
+        _G.Settings.KillerESP.Aura = v
+    end,
+});
+KillerOpt:AddToggle({
+    Name = "Дистанция",
+    Flag = "KillerESP_Distance",
+    Default = _G.Settings.KillerESP.Distance,
+    Callback = function(v)
+        _G.Settings.KillerESP.Distance = v
+    end,
+});
+KillerOpt:AddToggle({
+    Name = "Имя убийцы",
+    Flag = "KillerESP_ShowName",
+    Default = _G.Settings.KillerESP.ShowName,
+    Callback = function(v)
+        _G.Settings.KillerESP.ShowName = v
+    end,
+});
+
+EspPlayers:AddToggle({
+    Name = "Отслеживание выживших",
+    Flag = "SurvivorESP",
+    Default = _G.Settings.SurvivorESP.Enabled,
+    Callback = function(v)
+        _G.Settings.SurvivorESP.Enabled = v
+    end,
+});
+
+local SurvivorOpt = EspPlayers:AddOption();
+SurvivorOpt:AddToggle({
+    Name = "Подсветка",
+    Flag = "SurvivorESP_Aura",
+    Default = _G.Settings.SurvivorESP.Aura,
+    Callback = function(v)
+        _G.Settings.SurvivorESP.Aura = v
+    end,
+});
+SurvivorOpt:AddToggle({
+    Name = "Здоровье",
+    Flag = "SurvivorESP_Health",
+    Default = _G.Settings.SurvivorESP.HealthState,
+    Callback = function(v)
+        _G.Settings.SurvivorESP.HealthState = v
+    end,
+});
+SurvivorOpt:AddToggle({
+    Name = "Счетчик крюков",
+    Flag = "SurvivorESP_Hooks",
+    Default = _G.Settings.SurvivorESP.ShowHookCount,
+    Callback = function(v)
+        _G.Settings.SurvivorESP.ShowHookCount = v
+    end,
+});
+SurvivorOpt:AddToggle({
+    Name = "Цензура имен",
+    Flag = "SurvivorESP_Censor",
+    Default = _G.Settings.SurvivorESP.CensorNames,
+    Callback = function(v)
+        _G.Settings.SurvivorESP.CensorNames = v
+    end,
+});
+
+-- Секция: Объекты
+local EspObjects = EspTab:DrawSection({ Name = "Объекты", Position = 'left' });
+
+EspObjects:AddToggle({
+    Name = "Генераторы",
+    Flag = "GeneratorESP",
+    Default = _G.Settings.GeneratorESP.Enabled,
+    Callback = function(v)
+        _G.Settings.GeneratorESP.Enabled = v
+    end,
+});
+
+local GenOpt = EspObjects:AddOption();
+GenOpt:AddToggle({
+    Name = "Прогресс",
+    Flag = "GeneratorESP_Progress",
+    Default = _G.Settings.GeneratorESP.ShowProgress,
+    Callback = function(v)
+        _G.Settings.GeneratorESP.ShowProgress = v
+    end,
+});
+GenOpt:AddToggle({
+    Name = "Скорость ремонта",
+    Flag = "GeneratorESP_Speed",
+    Default = _G.Settings.GeneratorESP.ShowRepairSpeed,
+    Callback = function(v)
+        _G.Settings.GeneratorESP.ShowRepairSpeed = v
+    end,
+});
+GenOpt:AddToggle({
+    Name = "ETA",
+    Flag = "GeneratorESP_ETA",
+    Default = _G.Settings.GeneratorESP.ShowETA,
+    Callback = function(v)
+        _G.Settings.GeneratorESP.ShowETA = v
+    end,
+});
+
+EspObjects:AddToggle({
+    Name = "Крюки",
+    Flag = "HookESP",
+    Default = _G.Settings.HookESP.Enabled,
+    Callback = function(v)
+        _G.Settings.HookESP.Enabled = v
+    end,
+});
+
+EspObjects:AddToggle({
+    Name = "Паллеты",
+    Flag = "PalletESP",
+    Default = _G.Settings.PalletESP.Enabled,
+    Callback = function(v)
+        _G.Settings.PalletESP.Enabled = v
+    end,
+});
+
+EspObjects:AddToggle({
+    Name = "Окна",
+    Flag = "VaultESP",
+    Default = _G.Settings.VaultESP.Enabled,
+    Callback = function(v)
+        _G.Settings.VaultESP.Enabled = v
+    end,
+});
+
+EspObjects:AddToggle({
+    Name = "Ворота",
+    Flag = "GateESP",
+    Default = _G.Settings.GateESP.Enabled,
+    Callback = function(v)
+        _G.Settings.GateESP.Enabled = v
+    end,
+});
+
+EspObjects:AddToggle({
+    Name = "Кровь",
+    Flag = "BloodESP",
+    Default = _G.Settings.BloodESP.Enabled,
+    Callback = function(v)
+        _G.Settings.BloodESP.Enabled = v
+    end,
+});
+
+EspObjects:AddToggle({
+    Name = "Зомби/SCP",
+    Flag = "SCPESP",
+    Default = _G.Settings.SCPESP.Enabled,
+    Callback = function(v)
+        _G.Settings.SCPESP.Enabled = v
+    end,
+});
+
+-- Секция: Настройки ESP
+local EspSettings = EspTab:DrawSection({ Name = "Настройки", Position = 'right' });
+
+EspSettings:AddDropdown({
+    Name = "Стиль ESP",
+    Values = {"Old", "Standard", "Compact", "Minimal", "Aura Only"},
+    Default = _G.Settings.ESPStyle,
+    Flag = "ESPStyle",
+    Callback = function(v)
+        _G.Settings.ESPStyle = v
+    end,
+});
+
+EspSettings:AddSlider({
+    Name = "Дальность ESP",
+    Min = 100,
+    Max = 2000,
+    Default = _G.Settings.ESPRange,
+    Round = 0,
+    Flag = "ESPRange",
+    Callback = function(v)
+        _G.Settings.ESPRange = v
+    end,
+});
+
+EspSettings:AddToggle({
+    Name = "Прозрачность по дистанции",
+    Flag = "ESPDistanceFade",
+    Default = _G.Settings.ESPDistanceFade,
+    Callback = function(v)
+        _G.Settings.ESPDistanceFade = v
+    end,
+});
+
+EspSettings:AddToggle({
+    Name = "Трейсеры",
+    Flag = "ESPTracers",
+    Default = _G.Settings.ESPTracers,
+    Callback = function(v)
+        _G.Settings.ESPTracers = v
+    end,
+});
+
+EspSettings:AddToggle({
+    Name = "Мини-карта",
+    Flag = "Minimap",
+    Default = _G.Settings.Minimap.Enabled,
+    Callback = function(v)
+        _G.Settings.Minimap.Enabled = v
+    end,
+});
+
+-- ============================================
+-- Категория: Фарм
+-- ============================================
+
+Window:DrawCategory({ Name = "Фарм" });
+
+local FarmTab = Window:DrawTab({
+    Name = "Фарм",
+    Icon = "farm",
+    EnableScrolling = true
+});
+
+local FarmMain = FarmTab:DrawSection({ Name = "Автофарм", Position = 'left' });
+
+FarmMain:AddToggle({
+    Name = "Автофарм выжившего",
+    Flag = "AutoSurvivorFarm",
+    Default = _G.Settings.AutoFarmSurvivor,
+    Callback = function(v)
+        _G.Settings.AutoFarmSurvivor = v
+    end,
+});
+
+FarmMain:AddToggle({
+    Name = "Серверный хоп",
+    Flag = "ServerHop",
+    Default = _G.Settings.AutoServerHopEscape,
+    Callback = function(v)
+        _G.Settings.AutoServerHopEscape = v
+    end,
+});
+
+FarmMain:AddToggle({
+    Name = "Тотальный AFK фарм",
+    Flag = "TotalAFK",
+    Default = _G.Settings.AutoFarmAFKTotal,
+    Callback = function(v)
+        _G.Settings.AutoFarmAFKTotal = v
+    end,
+});
+
+FarmMain:AddButton({
+    Name = "Мгновенный побег",
+    Callback = function()
+        local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        local finish = nil
+        local dist = math.huge
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") and (v.Name:lower():find("finishline") or v.Name:lower():find("fininshline")) then
+                local d = (v.Position - root.Position).Magnitude
+                if d < dist then
+                    dist = d
+                    finish = v
                 end
             end
+        end
+        if finish then
+            root.CFrame = finish.CFrame
+        end
+    end,
+});
 
-            CurrentIndex = i
-            SelectedText.Text = option
-            Option.BackgroundColor3 = Theme.Background
-            Toggle()
+local FarmKiller = FarmTab:DrawSection({ Name = "Убийца", Position = 'right' });
 
-            if callback then
-                pcall(callback, option)
+FarmKiller:AddToggle({
+    Name = "Автофарм убийцы",
+    Flag = "AutoKillerFarm",
+    Default = _G.Settings.AutoFarmKiller,
+    Callback = function(v)
+        _G.Settings.AutoFarmKiller = v
+    end,
+});
+
+FarmKiller:AddToggle({
+    Name = "Анти-вырывание",
+    Flag = "AntiWiggle",
+    Default = _G.Settings.AntiWiggle,
+    Callback = function(v)
+        _G.Settings.AntiWiggle = v
+    end,
+});
+
+local FarmSkill = FarmTab:DrawSection({ Name = "Скиллчеки", Position = 'left' });
+
+FarmSkill:AddToggle({
+    Name = "Авто-скиллчек",
+    Flag = "AutoSkillCheck",
+    Default = _G.Settings.AutoSkillCheck,
+    Callback = function(v)
+        _G.Settings.AutoSkillCheck = v
+    end,
+});
+
+FarmSkill:AddToggle({
+    Name = "Мгновенный скиллчек",
+    Flag = "InstantSkillCheck",
+    Default = _G.Settings.InstantSkillCheck,
+    Callback = function(v)
+        _G.Settings.InstantSkillCheck = v
+    end,
+});
+
+FarmSkill:AddDropdown({
+    Name = "Режим",
+    Values = {"Perfect", "Normal", "Hybrid"},
+    Default = _G.Settings.SkillCheckMode,
+    Flag = "SkillCheckMode",
+    Callback = function(v)
+        _G.Settings.SkillCheckMode = v
+    end,
+});
+
+FarmSkill:AddSlider({
+    Name = "Шанс идеального",
+    Min = 0,
+    Max = 100,
+    Default = _G.Settings.PerfectHitRate,
+    Round = 0,
+    Flag = "PerfectHitRate",
+    Callback = function(v)
+        _G.Settings.PerfectHitRate = v
+    end,
+});
+
+FarmSkill:AddSlider({
+    Name = "Скорость скиллчека",
+    Min = 0.1,
+    Max = 3.0,
+    Default = _G.Settings.SkillCheckSpeedVal,
+    Round = 1,
+    Flag = "SkillCheckSpeed",
+    Callback = function(v)
+        _G.Settings.SkillCheckSpeedVal = v
+    end,
+});
+
+FarmSkill:AddToggle({
+    Name = "No Skill Checks",
+    Flag = "NoSkillChecks",
+    Default = _G.Settings.NoSkillChecks,
+    Callback = function(v)
+        _G.Settings.NoSkillChecks = v
+    end,
+});
+
+FarmSkill:AddButton({
+    Name = "Бафф генератора",
+    Callback = function()
+        -- Логика баффа генератора
+        local lp = game.Players.LocalPlayer
+        local char = lp.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        local nearest = nil
+        local dist = math.huge
+        for _, gen in ipairs(workspace:GetDescendants()) do
+            if gen.Name == "Generator" then
+                local pos = gen:IsA("Model") and gen:GetPivot and gen:GetPivot().Position or gen.Position
+                if pos then
+                    local d = (pos - root.Position).Magnitude
+                    if d < dist and d < 15 then
+                        dist = d
+                        nearest = gen
+                    end
+                end
             end
-        end)
-    end
+        end
+        if nearest then
+            local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+            if remotes then
+                local genRemote = remotes:FindFirstChild("Generator")
+                if genRemote then
+                    local repEvent = genRemote:FindFirstChild("RepairEvent")
+                    if repEvent then
+                        repEvent:FireServer(nearest, true)
+                    end
+                end
+            end
+        end
+    end,
+});
 
-    table.insert(tab.Elements, Dropdown)
+-- ============================================
+-- Категория: Модификаторы
+-- ============================================
 
-    return {
-        Set = function(option)
-            for i, v in ipairs(options) do
-                if v == option then
-                    CurrentIndex = i
-                    SelectedText.Text = v
-                    for _, child in pairs(DropScroll:GetChildren()) do
-                        if child:IsA("TextButton") then
-                            child.BackgroundColor3 = Theme.Card
+Window:DrawCategory({ Name = "Модификаторы" });
+
+local ModTab = Window:DrawTab({
+    Name = "Моды",
+    Icon = "tune",
+    EnableScrolling = true
+});
+
+local ModSpeed = ModTab:DrawSection({ Name = "Скорость", Position = 'left' });
+
+ModSpeed:AddToggle({
+    Name = "Буст скорости",
+    Flag = "SpeedBoost",
+    Default = _G.Settings.SpeedBoostEnabled,
+    Callback = function(v)
+        _G.Settings.SpeedBoostEnabled = v
+    end,
+});
+
+ModSpeed:AddSlider({
+    Name = "Множитель скорости",
+    Min = 1.0,
+    Max = 3.0,
+    Default = _G.Settings.SpeedBoost,
+    Round = 1,
+    Flag = "SpeedMultiplier",
+    Callback = function(v)
+        _G.Settings.SpeedBoost = v
+    end,
+});
+
+ModSpeed:AddToggle({
+    Name = "Учет перков скорости",
+    Flag = "CountSpeedPerks",
+    Default = _G.Settings.CountSpeedPerks,
+    Callback = function(v)
+        _G.Settings.CountSpeedPerks = v
+    end,
+});
+
+ModSpeed:AddDropdown({
+    Name = "Фильтр команды",
+    Values = {"Both", "Survivors", "Killer"},
+    Default = _G.Settings.ModifierTeamFilter,
+    Flag = "TeamFilter",
+    Callback = function(v)
+        _G.Settings.ModifierTeamFilter = v
+    end,
+});
+
+local ModMovement = ModTab:DrawSection({ Name = "Движение", Position = 'right' });
+
+ModMovement:AddToggle({
+    Name = "Авто-лунная походка",
+    Flag = "AutoMoonwalk",
+    Default = _G.Settings.AutoMoonwalk,
+    Callback = function(v)
+        _G.Settings.AutoMoonwalk = v
+    end,
+});
+
+ModMovement:AddToggle({
+    Name = "Обратная лунная походка",
+    Flag = "ReverseMoonwalk",
+    Default = _G.Settings.ReverseMoonwalk,
+    Callback = function(v)
+        _G.Settings.ReverseMoonwalk = v
+    end,
+});
+
+ModMovement:AddSlider({
+    Name = "Скорость sway",
+    Min = 1,
+    Max = 30,
+    Default = _G.Settings.MoonwalkSwaySpeed,
+    Round = 0,
+    Flag = "SwaySpeed",
+    Callback = function(v)
+        _G.Settings.MoonwalkSwaySpeed = v
+    end,
+});
+
+ModMovement:AddSlider({
+    Name = "Амплитуда sway",
+    Min = 0,
+    Max = 150,
+    Default = _G.Settings.MoonwalkSwayAmplitude * 100,
+    Round = 0,
+    Flag = "SwayAmplitude",
+    Callback = function(v)
+        _G.Settings.MoonwalkSwayAmplitude = v / 100
+    end,
+});
+
+ModMovement:AddToggle({
+    Name = "Ноклип окон/паллет",
+    Flag = "NoclipVaultsPallets",
+    Default = _G.Settings.NoclipVaultsPallets,
+    Callback = function(v)
+        _G.Settings.NoclipVaultsPallets = v
+    end,
+});
+
+ModMovement:AddToggle({
+    Name = "Авто-побег от убийцы",
+    Flag = "AutoFleeKiller",
+    Default = _G.Settings.AutoFleeKiller,
+    Callback = function(v)
+        _G.Settings.AutoFleeKiller = v
+    end,
+});
+
+local ModHeal = ModTab:DrawSection({ Name = "Лечение", Position = 'left' });
+
+ModHeal:AddToggle({
+    Name = "Мгновенное лечение",
+    Flag = "InstantHeal",
+    Default = _G.Settings.InstantHeal,
+    Callback = function(v)
+        _G.Settings.InstantHeal = v
+    end,
+});
+
+ModHeal:AddButton({
+    Name = "Мгновенная перевязка",
+    Callback = function()
+        -- Логика мгновенной перевязки
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.Health = hum.MaxHealth
+            end
+        end
+    end,
+});
+
+local ModEffects = ModTab:DrawSection({ Name = "Эффекты", Position = 'right' });
+
+ModEffects:AddToggle({
+    Name = "Радужный персонаж",
+    Flag = "RainbowCharacter",
+    Default = _G.Settings.RainbowCharacter,
+    Callback = function(v)
+        _G.Settings.RainbowCharacter = v
+    end,
+});
+
+ModEffects:AddDropdown({
+    Name = "Режим радуги",
+    Values = {"Highlight", "Body Parts", "ForceField"},
+    Default = _G.Settings.RainbowCharacterMode,
+    Flag = "RainbowMode",
+    Callback = function(v)
+        _G.Settings.RainbowCharacterMode = v
+    end,
+});
+
+local ModPerks = ModTab:DrawSection({ Name = "Перки", Position = 'left' });
+
+ModPerks:AddToggle({
+    Name = "Force Flowstate",
+    Flag = "FlowstatePerk",
+    Default = _G.Settings.FlowstatePerk,
+    Callback = function(v)
+        _G.Settings.FlowstatePerk = v
+    end,
+});
+
+ModPerks:AddSlider({
+    Name = "Кулдаун Flowstate",
+    Min = 0,
+    Max = 60,
+    Default = _G.Settings.FlowstateCooldown,
+    Round = 0,
+    Flag = "FlowstateCooldown",
+    Callback = function(v)
+        _G.Settings.FlowstateCooldown = v
+    end,
+});
+
+ModPerks:AddToggle({
+    Name = "Скрыть UI Flowstate",
+    Flag = "HideFlowstateUI",
+    Default = _G.Settings.HideFlowstateUI,
+    Callback = function(v)
+        _G.Settings.HideFlowstateUI = v
+    end,
+});
+
+-- ============================================
+-- Категория: Бой
+-- ============================================
+
+Window:DrawCategory({ Name = "Бой" });
+
+local CombatTab = Window:DrawTab({
+    Name = "Бой",
+    Icon = "sword",
+    EnableScrolling = true
+});
+
+local CombatParry = CombatTab:DrawSection({ Name = "Автопарри", Position = 'left' });
+
+CombatParry:AddToggle({
+    Name = "Автопарри",
+    Flag = "AutoParry",
+    Default = _G.Settings.AutoParry,
+    Callback = function(v)
+        _G.Settings.AutoParry = v
+    end,
+});
+
+CombatParry:AddToggle({
+    Name = "Использовать предмет",
+    Flag = "ParryUseItem",
+    Default = _G.Settings.ParryUseItem,
+    Callback = function(v)
+        _G.Settings.ParryUseItem = v
+    end,
+});
+
+CombatParry:AddSlider({
+    Name = "Дальность парирования",
+    Min = 6,
+    Max = 25,
+    Default = _G.Settings.ParryRange,
+    Round = 0,
+    Flag = "ParryRange",
+    Callback = function(v)
+        _G.Settings.ParryRange = v
+    end,
+});
+
+CombatParry:AddDropdown({
+    Name = "Задержка реакции",
+    Values = {"0", "50", "100", "150", "200", "250", "300"},
+    Default = tostring(_G.Settings.ParryDelay * 1000),
+    Flag = "ParryDelay",
+    Callback = function(v)
+        _G.Settings.ParryDelay = tonumber(v) / 1000
+    end,
+});
+
+CombatParry:AddToggle({
+    Name = "Проверка направления",
+    Flag = "ParryFacingCheck",
+    Default = _G.Settings.ParryFacingCheck,
+    Callback = function(v)
+        _G.Settings.ParryFacingCheck = v
+    end,
+});
+
+CombatParry:AddToggle({
+    Name = "Компенсация пинга",
+    Flag = "ParryPingCompensation",
+    Default = _G.Settings.ParryPingCompensation,
+    Callback = function(v)
+        _G.Settings.ParryPingCompensation = v
+    end,
+});
+
+CombatParry:AddToggle({
+    Name = "Визуальный круг",
+    Flag = "ParryRangeESP",
+    Default = _G.Settings.ParryRangeESP,
+    Callback = function(v)
+        _G.Settings.ParryRangeESP = v
+    end,
+});
+
+CombatParry:AddToggle({
+    Name = "Игнорирование Frenzy",
+    Flag = "FrenzyParry",
+    Default = _G.Settings.FrenzyParry,
+    Callback = function(v)
+        _G.Settings.FrenzyParry = v
+    end,
+});
+
+CombatParry:AddToggle({
+    Name = "Игнорирование Abysswalker",
+    Flag = "IgnoreAbysswalker",
+    Default = _G.Settings.IgnoreAbysswalkerLunge,
+    Callback = function(v)
+        _G.Settings.IgnoreAbysswalkerLunge = v
+    end,
+});
+
+CombatParry:AddToggle({
+    Name = "Скрыть UI парирования",
+    Flag = "HideParryUI",
+    Default = _G.Settings.HideParryUI,
+    Callback = function(v)
+        _G.Settings.HideParryUI = v
+    end,
+});
+
+local CombatAimbot = CombatTab:DrawSection({ Name = "Аимбот", Position = 'right' });
+
+CombatAimbot:AddToggle({
+    Name = "Аимбот (общий)",
+    Flag = "GeneralAimbot",
+    Default = _G.Settings.AimAssist.Enabled,
+    Callback = function(v)
+        _G.Settings.AimAssist.Enabled = v
+    end,
+});
+
+CombatAimbot:AddDropdown({
+    Name = "Часть тела",
+    Values = {"Head", "UpperTorso", "HumanoidRootPart"},
+    Default = _G.Settings.AimAssist.TargetPart,
+    Flag = "AimbotPart",
+    Callback = function(v)
+        _G.Settings.AimAssist.TargetPart = v
+    end,
+});
+
+CombatAimbot:AddDropdown({
+    Name = "Приоритет",
+    Values = {"Nearest", "Furthest", "Injured", "Healed"},
+    Default = _G.Settings.AimAssist.Priority,
+    Flag = "AimbotPriority",
+    Callback = function(v)
+        _G.Settings.AimAssist.Priority = v
+    end,
+});
+
+CombatAimbot:AddSlider({
+    Name = "FOV радиус",
+    Min = 50,
+    Max = 500,
+    Default = _G.Settings.AimAssist.FOV,
+    Round = 0,
+    Flag = "AimbotFOV",
+    Callback = function(v)
+        _G.Settings.AimAssist.FOV = v
+    end,
+});
+
+CombatAimbot:AddToggle({
+    Name = "Показывать FOV",
+    Flag = "ShowFOVCircle",
+    Default = _G.Settings.AimAssist.ShowFOV,
+    Callback = function(v)
+        _G.Settings.AimAssist.ShowFOV = v
+    end,
+});
+
+CombatAimbot:AddToggle({
+    Name = "Предсказание движения",
+    Flag = "PredictMovement",
+    Default = _G.Settings.AimAssist.Prediction,
+    Callback = function(v)
+        _G.Settings.AimAssist.Prediction = v
+    end,
+});
+
+-- ============================================
+-- Категория: Револьвер / Вейл
+-- ============================================
+
+Window:DrawCategory({ Name = "Оружие" });
+
+local WeaponTab = Window:DrawTab({
+    Name = "Оружие",
+    Icon = "sword",
+    EnableScrolling = true
+});
+
+local RevSection = WeaponTab:DrawSection({ Name = "Револьвер", Position = 'left' });
+
+RevSection:AddToggle({
+    Name = "Автофарм револьвером",
+    Flag = "RevolverAutofarm",
+    Default = _G.Settings.RevolverAutofarm,
+    Callback = function(v)
+        _G.Settings.RevolverAutofarm = v
+    end,
+});
+
+RevSection:AddToggle({
+    Name = "Аимбот револьвера",
+    Flag = "RevolverAimbot",
+    Default = _G.Settings.RevolverAimbot.Enabled,
+    Callback = function(v)
+        _G.Settings.RevolverAimbot.Enabled = v
+    end,
+});
+
+RevSection:AddToggle({
+    Name = "Сайлент-аим револьвера",
+    Flag = "RevolverSilentAim",
+    Default = _G.Settings.RevolverSilentAim.Enabled,
+    Callback = function(v)
+        _G.Settings.RevolverSilentAim.Enabled = v
+    end,
+});
+
+RevSection:AddSlider({
+    Name = "FOV сайлента",
+    Min = 50,
+    Max = 400,
+    Default = _G.Settings.RevolverSilentAim.FOVRadius,
+    Round = 0,
+    Flag = "RevolverSilentFOV",
+    Callback = function(v)
+        _G.Settings.RevolverSilentAim.FOVRadius = v
+    end,
+});
+
+RevSection:AddToggle({
+    Name = "Обход ограничений",
+    Flag = "BypassToFRestrictions",
+    Default = _G.Settings.BypassToFRestrictions,
+    Callback = function(v)
+        _G.Settings.BypassToFRestrictions = v
+    end,
+});
+
+local VeilSection = WeaponTab:DrawSection({ Name = "Вейл", Position = 'right' });
+
+VeilSection:AddToggle({
+    Name = "Траектория копья",
+    Flag = "SpearTrajectory",
+    Default = _G.Settings.SpearTrajectory,
+    Callback = function(v)
+        _G.Settings.SpearTrajectory = v
+    end,
+});
+
+VeilSection:AddToggle({
+    Name = "Noclip траектории",
+    Flag = "SpearTrajectoryNoclip",
+    Default = _G.Settings.SpearTrajectoryNoclip,
+    Callback = function(v)
+        _G.Settings.SpearTrajectoryNoclip = v
+    end,
+});
+
+VeilSection:AddToggle({
+    Name = "Аимбот копья",
+    Flag = "SpearAimbot",
+    Default = _G.Settings.SpearAimbot.Enabled,
+    Callback = function(v)
+        _G.Settings.SpearAimbot.Enabled = v
+    end,
+});
+
+VeilSection:AddToggle({
+    Name = "Сайлент-аим копья",
+    Flag = "SpearSilentAim",
+    Default = _G.Settings.SpearSilentAim.Enabled,
+    Callback = function(v)
+        _G.Settings.SpearSilentAim.Enabled = v
+    end,
+});
+
+-- ============================================
+-- Категория: Убийцы
+-- ============================================
+
+Window:DrawCategory({ Name = "Убийцы" });
+
+local KillerTab = Window:DrawTab({
+    Name = "Убийцы",
+    Icon = "skull",
+    EnableScrolling = true
+});
+
+-- Masked
+local MaskedSection = KillerTab:DrawSection({ Name = "MASKED", Position = 'left' });
+
+local MaskedBuffs = {
+    "Richter - Stealth",
+    "Alex - Chainsaw",
+    "Brandon - Walk Faster",
+    "Rabbit - Fast Vaults",
+    "Cobra - Extended Lunges",
+    "Tony - Lethal Punches",
+    "Normal - No Buffs"
+};
+
+MaskedSection:AddDropdown({
+    Name = "Выбрать бафф",
+    Values = MaskedBuffs,
+    Default = "Normal - No Buffs",
+    Flag = "MaskedBuff",
+    Callback = function(v)
+        _G.Settings.Masked.CurrentBuff = v
+        -- Логика активации баффа
+        local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+        if remotes then
+            local killers = remotes:FindFirstChild("Killers")
+            if killers then
+                local masked = killers:FindFirstChild("Masked")
+                if masked then
+                    local deactivate = masked:FindFirstChild("Deactivatepower")
+                    local activate = masked:FindFirstChild("Activatepower")
+                    if deactivate then
+                        deactivate:FireServer()
+                        task.wait(0.5)
+                    end
+                    if activate and v ~= "Normal - No Buffs" then
+                        local buffName = v:match("(.+)%-")
+                        if buffName then
+                            activate:FireServer(buffName:gsub("%s+", ""))
                         end
                     end
-                    DropScroll:GetChildren()[i].BackgroundColor3 = Theme.Background
-                    break
                 end
             end
-        end,
-        Get = function()
-            return options[CurrentIndex]
         end
-    }
-end
+    end,
+});
 
--- Создание ColorPicker (полноценный)
-function Library:CreateColorPicker(tab, text, default, callback)
-    local ColorPicker = Instance.new("Frame")
-    ColorPicker.Name = "ColorPicker"
-    ColorPicker.Size = UDim2.new(1, 0, 0, 38)
-    ColorPicker.BackgroundColor3 = Theme.Card
-    ColorPicker.BorderSizePixel = 0
-    ColorPicker.ClipDescendants = false
-    ColorPicker.LayoutOrder = #tab.Elements
-    Utility:Corner(ColorPicker, 6)
+-- Stalker
+local StalkerSection = KillerTab:DrawSection({ Name = "STALKER", Position = 'right' });
 
-    local Label = Instance.new("TextLabel")
-    Label.Position = UDim2.new(0, 10, 0, 0)
-    Label.Size = UDim2.new(0.65, 0, 1, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text = text
-    Label.TextColor3 = Theme.Primary
-    Label.Font = Enum.Font.Gotham
-    Label.TextSize = 11
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = ColorPicker
+StalkerSection:AddToggle({
+    Name = "Нет перезарядки",
+    Flag = "StalkerNoCooldown",
+    Default = _G.Settings.Stalker.NoCooldown,
+    Callback = function(v)
+        _G.Settings.Stalker.NoCooldown = v
+    end,
+});
 
-    local ColorBox = Instance.new("TextButton")
-    ColorBox.AnchorPoint = Vector2.new(1, 0.5)
-    ColorBox.Position = UDim2.new(1, -10, 0.5, 0)
-    ColorBox.Size = UDim2.new(0, 50, 0, 24)
-    ColorBox.BackgroundColor3 = default or Color3.fromRGB(255, 255, 255)
-    ColorBox.BorderSizePixel = 0
-    ColorBox.AutoButtonColor = false
-    ColorBox.Text = ""
-    ColorBox.Parent = ColorPicker
-    Utility:Corner(ColorBox, 5)
-    Utility:Stroke(ColorBox, Theme.Border, 1)
+StalkerSection:AddToggle({
+    Name = "Убийственный захват",
+    Flag = "StalkerKillGrab",
+    Default = _G.Settings.Stalker.KillGrab,
+    Callback = function(v)
+        _G.Settings.Stalker.KillGrab = v
+    end,
+});
 
-    local CurrentColor = default or Color3.fromRGB(255, 255, 255)
+StalkerSection:AddToggle({
+    Name = "Сталк во время движения",
+    Flag = "StalkerWhileMoving",
+    Default = _G.Settings.Stalker.StalkWhileMoving,
+    Callback = function(v)
+        _G.Settings.Stalker.StalkWhileMoving = v
+    end,
+});
 
-    -- Окно выбора цвета
-    local PickerWindow = Instance.new("Frame")
-    PickerWindow.AnchorPoint = Vector2.new(0.5, 0)
-    PickerWindow.Position = UDim2.new(0.5, 0, 1, 4)
-    PickerWindow.Size = UDim2.new(1, 0, 0, 0)
-    PickerWindow.BackgroundColor3 = Theme.Card
-    PickerWindow.BorderSizePixel = 0
-    PickerWindow.Visible = false
-    PickerWindow.ZIndex = 100
-    PickerWindow.Parent = ColorPicker
-    Utility:Corner(PickerWindow, 6)
-    Utility:Stroke(PickerWindow, Theme.Border, 1)
+-- Abysswalker
+local AbyssSection = KillerTab:DrawSection({ Name = "ABYSSWALKER", Position = 'left' });
 
-    local IsOpen = false
-    local CurrentHue = 0
-    local CurrentSat = 1
-    local CurrentVal = 1
+AbyssSection:AddToggle({
+    Name = "Бесконечная порча",
+    Flag = "InfiniteCorrupt",
+    Default = _G.Settings.Stalker.InfiniteCorrupt,
+    Callback = function(v)
+        _G.Settings.Stalker.InfiniteCorrupt = v
+    end,
+});
 
-    -- Палитра SV
-    local Palette = Instance.new("ImageButton")
-    Palette.Position = UDim2.new(0, 10, 0, 10)
-    Palette.Size = UDim2.new(1, -50, 0, 150)
-    Palette.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    Palette.BorderSizePixel = 0
-    Palette.AutoButtonColor = false
-    Palette.Parent = PickerWindow
-    Utility:Corner(Palette, 5)
+AbyssSection:AddToggle({
+    Name = "Авто-приседание",
+    Flag = "AutoDodge",
+    Default = _G.Settings.Stalker.AutoDodge,
+    Callback = function(v)
+        _G.Settings.Stalker.AutoDodge = v
+    end,
+});
 
-    local PaletteGradient = Instance.new("UIGradient")
-    PaletteGradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-    }
-    PaletteGradient.Rotation = 0
-    PaletteGradient.Parent = Palette
+AbyssSection:AddSlider({
+    Name = "Дистанция приседания",
+    Min = 5,
+    Max = 50,
+    Default = _G.Settings.Stalker.AutoDodgeDistance,
+    Round = 0,
+    Flag = "AutoDodgeDistance",
+    Callback = function(v)
+        _G.Settings.Stalker.AutoDodgeDistance = v
+    end,
+});
 
-    local PaletteOverlay = Instance.new("ImageLabel")
-    PaletteOverlay.Size = UDim2.new(1, 0, 1, 0)
-    PaletteOverlay.BackgroundTransparency = 1
-    PaletteOverlay.Image = "rbxassetid://4155801252"
-    PaletteOverlay.ImageColor3 = Color3.fromRGB(0, 0, 0)
-    PaletteOverlay.Parent = Palette
+AbyssSection:AddToggle({
+    Name = "Нет стана",
+    Flag = "NoStun",
+    Default = _G.Settings.NoStun,
+    Callback = function(v)
+        _G.Settings.NoStun = v
+    end,
+});
 
-    local PaletteCursor = Instance.new("Frame")
-    PaletteCursor.AnchorPoint = Vector2.new(0.5, 0.5)
-    PaletteCursor.Position = UDim2.new(1, 0, 0, 0)
-    PaletteCursor.Size = UDim2.new(0, 8, 0, 8)
-    PaletteCursor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    PaletteCursor.BorderSizePixel = 0
-    PaletteCursor.Parent = Palette
-    Utility:Corner(PaletteCursor, 4)
-    Utility:Stroke(PaletteCursor, Color3.fromRGB(0, 0, 0), 2)
+-- ============================================
+-- Категория: Визуалы
+-- ============================================
 
-    -- Слайдер Hue
-    local HueSlider = Instance.new("ImageButton")
-    HueSlider.Position = UDim2.new(1, -30, 0, 10)
-    HueSlider.Size = UDim2.new(0, 20, 0, 150)
-    HueSlider.BackgroundTransparency = 1
-    HueSlider.Image = "rbxassetid://3641079629"
-    HueSlider.AutoButtonColor = false
-    HueSlider.Parent = PickerWindow
-    Utility:Corner(HueSlider, 5)
+Window:DrawCategory({ Name = "Визуалы" });
 
-    local HueCursor = Instance.new("Frame")
-    HueCursor.AnchorPoint = Vector2.new(0.5, 0.5)
-    HueCursor.Position = UDim2.new(0.5, 0, 0, 0)
-    HueCursor.Size = UDim2.new(1, 4, 0, 4)
-    HueCursor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    HueCursor.BorderSizePixel = 0
-    HueCursor.Parent = HueSlider
-    Utility:Stroke(HueCursor, Color3.fromRGB(0, 0, 0), 2)
+local VisualTab = Window:DrawTab({
+    Name = "Визуал",
+    Icon = "palette",
+    EnableScrolling = true
+});
 
-    -- Превью цвета
-    local Preview = Instance.new("Frame")
-    Preview.Position = UDim2.new(0, 10, 0, 170)
-    Preview.Size = UDim2.new(1, -20, 0, 30)
-    Preview.BackgroundColor3 = CurrentColor
-    Preview.BorderSizePixel = 0
-    Preview.Parent = PickerWindow
-    Utility:Corner(Preview, 5)
-    Utility:Stroke(Preview, Theme.Border, 1)
+local VisGraphics = VisualTab:DrawSection({ Name = "Графика", Position = 'left' });
 
-    -- RGB текст
-    local RGBLabel = Instance.new("TextLabel")
-    RGBLabel.Size = UDim2.new(1, 0, 1, 0)
-    RGBLabel.BackgroundTransparency = 1
-    RGBLabel.Text = string.format("RGB(%d, %d, %d)", 
-        math.floor(CurrentColor.R * 255),
-        math.floor(CurrentColor.G * 255),
-        math.floor(CurrentColor.B * 255)
-    )
-    RGBLabel.TextColor3 = Theme.Primary
-    RGBLabel.Font = Enum.Font.GothamBold
-    RGBLabel.TextSize = 10
-    RGBLabel.Parent = Preview
+VisGraphics:AddToggle({
+    Name = "RTX Graphics",
+    Flag = "RTXGraphics",
+    Default = _G.Settings.RTXGraphics,
+    Callback = function(v)
+        _G.Settings.RTXGraphics = v
+    end,
+});
 
-    -- Функции обновления цвета
-    local function UpdateColor()
-        local hue = CurrentHue / 360
-        local color = Color3.fromHSV(hue, CurrentSat, CurrentVal)
-        CurrentColor = color
-        ColorBox.BackgroundColor3 = color
-        Preview.BackgroundColor3 = color
-        RGBLabel.Text = string.format("RGB(%d, %d, %d)", 
-            math.floor(color.R * 255),
-            math.floor(color.G * 255),
-            math.floor(color.B * 255)
-        )
-        Palette.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
+VisGraphics:AddToggle({
+    Name = "Глубина резкости",
+    Flag = "CinematicDOF",
+    Default = _G.Settings.CinematicDOF,
+    Callback = function(v)
+        _G.Settings.CinematicDOF = v
+    end,
+});
 
-        if callback then
-            pcall(callback, color)
+VisGraphics:AddDropdown({
+    Name = "Визуальный пресет",
+    Values = {"Default", "Vibrant & Alive", "Clean Daylight", "Cyberpunk Neon", "Warm Sunset", "Moonlight", "Custom"},
+    Default = _G.Settings.VisualPreset,
+    Flag = "VisualPreset",
+    Callback = function(v)
+        _G.Settings.VisualPreset = v
+    end,
+});
+
+VisGraphics:AddSlider({
+    Name = "Насыщенность",
+    Min = 0,
+    Max = 100,
+    Default = _G.Settings.VisualSaturation * 100,
+    Round = 0,
+    Flag = "Saturation",
+    Callback = function(v)
+        _G.Settings.VisualSaturation = v / 100
+    end,
+});
+
+VisGraphics:AddSlider({
+    Name = "Контраст",
+    Min = 0,
+    Max = 50,
+    Default = _G.Settings.VisualContrast * 100,
+    Round = 0,
+    Flag = "Contrast",
+    Callback = function(v)
+        _G.Settings.VisualContrast = v / 100
+    end,
+});
+
+local VisLighting = VisualTab:DrawSection({ Name = "Освещение", Position = 'right' });
+
+VisLighting:AddDropdown({
+    Name = "Время суток",
+    Values = {"Default", "Day", "Sunset", "Sunrise", "Night"},
+    Default = _G.Settings.TimeOfDayPreset,
+    Flag = "TimeOfDay",
+    Callback = function(v)
+        _G.Settings.TimeOfDayPreset = v
+        local lighting = game:GetService("Lighting")
+        if v == "Day" then
+            lighting.ClockTime = 14
+        elseif v == "Sunset" then
+            lighting.ClockTime = 18
+        elseif v == "Sunrise" then
+            lighting.ClockTime = 6.5
+        elseif v == "Night" then
+            lighting.ClockTime = 0
         end
-    end
+    end,
+});
 
-    -- Обработка палитры
-    local PaletteDragging = false
-    Palette.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            PaletteDragging = true
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            PaletteDragging = false
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if PaletteDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local posX = math.clamp((input.Position.X - Palette.AbsolutePosition.X) / Palette.AbsoluteSize.X, 0, 1)
-            local posY = math.clamp((input.Position.Y - Palette.AbsolutePosition.Y) / Palette.AbsoluteSize.Y, 0, 1)
-            
-            CurrentSat = posX
-            CurrentVal = 1 - posY
-            PaletteCursor.Position = UDim2.new(posX, 0, posY, 0)
-            UpdateColor()
-        end
-    end)
-
-    -- Обработка Hue слайдера
-    local HueDragging = false
-    HueSlider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            HueDragging = true
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if HueDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local posY = math.clamp((input.Position.Y - HueSlider.AbsolutePosition.Y) / HueSlider.AbsoluteSize.Y, 0, 1)
-            CurrentHue = posY * 360
-            HueCursor.Position = UDim2.new(0.5, 0, posY, 0)
-            UpdateColor()
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            HueDragging = false
-        end
-    end)
-
-    -- Открытие/закрытие
-    ColorBox.MouseButton1Click:Connect(function()
-        IsOpen = not IsOpen
-        if IsOpen then
-            if ActiveDropdown then
-                ActiveDropdown.Visible = false
-                ActiveDropdown = nil
-            end
-            PickerWindow.Size = UDim2.new(1, 0, 0, 210)
-            PickerWindow.Visible = true
+VisLighting:AddToggle({
+    Name = "Кастомное освещение",
+    Flag = "CustomLighting",
+    Default = _G.Settings.CustomLightingEnabled,
+    Callback = function(v)
+        _G.Settings.CustomLightingEnabled = v
+        if v then
+            local lighting = game:GetService("Lighting")
+            lighting.Ambient = _G.Settings.CustomLightingColor
+            lighting.OutdoorAmbient = _G.Settings.CustomLightingColor
         else
-            PickerWindow.Visible = false
+            local lighting = game:GetService("Lighting")
+            lighting.Ambient = Color3.fromRGB(0, 0, 0)
+            lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
         end
-    end)
+    end,
+});
 
-    table.insert(tab.Elements, ColorPicker)
+VisLighting:AddToggle({
+    Name = "Лучи Бога",
+    Flag = "SunRays",
+    Default = _G.Settings.SunRaysEnabled,
+    Callback = function(v)
+        _G.Settings.SunRaysEnabled = v
+    end,
+});
 
-    return {
-        Set = function(color)
-            CurrentColor = color
-            ColorBox.BackgroundColor3 = color
-            Preview.BackgroundColor3 = color
-            
-            local h, s, v = color:ToHSV()
-            CurrentHue = h * 360
-            CurrentSat = s
-            CurrentVal = v
-            
-            HueCursor.Position = UDim2.new(0.5, 0, h, 0)
-            PaletteCursor.Position = UDim2.new(s, 0, 1 - v, 0)
-            Palette.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
-        end,
-        Get = function()
-            return CurrentColor
+VisLighting:AddToggle({
+    Name = "Туман",
+    Flag = "CustomFog",
+    Default = _G.Settings.CustomFogEnabled,
+    Callback = function(v)
+        _G.Settings.CustomFogEnabled = v
+    end,
+});
+
+VisLighting:AddSlider({
+    Name = "Старт тумана",
+    Min = 0,
+    Max = 500,
+    Default = _G.Settings.CustomFogStart,
+    Round = 0,
+    Flag = "FogStart",
+    Callback = function(v)
+        _G.Settings.CustomFogStart = v
+        if _G.Settings.CustomFogEnabled then
+            game:GetService("Lighting").FogStart = v
         end
-    }
-end
+    end,
+});
 
--- Создание Label
-function Library:CreateLabel(tab, text)
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, 0, 0, 28)
-    Label.BackgroundColor3 = Theme.Card
-    Label.BorderSizePixel = 0
-    Label.Text = text
-    Label.TextColor3 = Theme.Secondary
-    Label.Font = Enum.Font.Gotham
-    Label.TextSize = 10
-    Label.TextWrapped = true
-    Label.LayoutOrder = #tab.Elements
-    Utility:Corner(Label, 6)
-    Utility:Padding(Label, 8)
-
-    table.insert(tab.Elements, Label)
-
-    return {
-        SetText = function(newText)
-            Label.Text = newText
+VisLighting:AddSlider({
+    Name = "Конец тумана",
+    Min = 100,
+    Max = 3000,
+    Default = _G.Settings.CustomFogEnd,
+    Round = 0,
+    Flag = "FogEnd",
+    Callback = function(v)
+        _G.Settings.CustomFogEnd = v
+        if _G.Settings.CustomFogEnabled then
+            game:GetService("Lighting").FogEnd = v
         end
-    }
-end
+    end,
+});
 
--- Создание вкладок
-local ESPTab = Library:CreateTab("ESP", "👁️")
-local FarmTab = Library:CreateTab("Farm", "⚙️")
-local ModTab = Library:CreateTab("Mods", "🛠️")
-local CombatTab = Library:CreateTab("Combat", "⚔️")
-local VisualTab = Library:CreateTab("Visual", "🎨")
-local ConfigTab = Library:CreateTab("Config", "💾")
+local VisEffects = VisualTab:DrawSection({ Name = "Эффекты", Position = 'left' });
 
--- ==================== ВКЛАДКА ESP ====================
-Library:CreateSection(ESPTab, "ОСНОВНЫЕ НАСТРОЙКИ")
-Library:CreateToggle(ESPTab, "Мастер ESP", _G.VDSettings.ESP.Master, function(v)
-    _G.VDSettings.ESP.Master = v
-end)
+VisEffects:AddToggle({
+    Name = "Блум",
+    Flag = "Bloom",
+    Default = _G.Settings.CustomBloomEnabled,
+    Callback = function(v)
+        _G.Settings.CustomBloomEnabled = v
+    end,
+});
 
-Library:CreateSection(ESPTab, "ИГРОКИ")
-Library:CreateToggle(ESPTab, "Отслеживание убийцы", _G.VDSettings.ESP.Players.Killers.Enabled, function(v)
-    _G.VDSettings.ESP.Players.Killers.Enabled = v
-end)
+VisEffects:AddSlider({
+    Name = "Интенсивность блума",
+    Min = 0,
+    Max = 300,
+    Default = _G.Settings.BloomIntensity * 100,
+    Round = 0,
+    Flag = "BloomIntensity",
+    Callback = function(v)
+        _G.Settings.BloomIntensity = v / 100
+    end,
+});
 
-Library:CreateToggle(ESPTab, "Подсветка убийцы", _G.VDSettings.ESP.Players.Killers.Aura, function(v)
-    _G.VDSettings.ESP.Players.Killers.Aura = v
-end)
+VisEffects:AddSlider({
+    Name = "Размер блума",
+    Min = 5,
+    Max = 56,
+    Default = _G.Settings.BloomSize,
+    Round = 0,
+    Flag = "BloomSize",
+    Callback = function(v)
+        _G.Settings.BloomSize = v
+    end,
+});
 
-Library:CreateToggle(ESPTab, "Дистанция убийцы", _G.VDSettings.ESP.Players.Killers.Distance, function(v)
-    _G.VDSettings.ESP.Players.Killers.Distance = v
-end)
+VisEffects:AddToggle({
+    Name = "Full Bright",
+    Flag = "FullBright",
+    Default = _G.Settings.FullBright,
+    Callback = function(v)
+        _G.Settings.FullBright = v
+        if v then
+            local lighting = game:GetService("Lighting")
+            lighting.Brightness = 2
+            lighting.ClockTime = 14
+            lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+            lighting.GlobalShadows = false
+        end
+    end,
+});
 
-Library:CreateToggle(ESPTab, "Отслеживание выживших", _G.VDSettings.ESP.Players.Survivors.Enabled, function(v)
-    _G.VDSettings.ESP.Players.Survivors.Enabled = v
-end)
+VisEffects:AddToggle({
+    Name = "No Fog",
+    Flag = "NoFog",
+    Default = _G.Settings.NoFog,
+    Callback = function(v)
+        _G.Settings.NoFog = v
+        if v then
+            local lighting = game:GetService("Lighting")
+            lighting.FogStart = 999999
+            lighting.FogEnd = 999999
+        end
+    end,
+});
 
-Library:CreateToggle(ESPTab, "Здоровье выживших", _G.VDSettings.ESP.Players.Survivors.Health, function(v)
-    _G.VDSettings.ESP.Players.Survivors.Health = v
-end)
+local VisCrosshair = VisualTab:DrawSection({ Name = "Прицел", Position = 'right' });
 
-Library:CreateSection(ESPTab, "ОБЪЕКТЫ")
-Library:CreateToggle(ESPTab, "Генераторы", _G.VDSettings.ESP.Objects.Generators.Enabled, function(v)
-    _G.VDSettings.ESP.Objects.Generators.Enabled = v
-end)
+VisCrosshair:AddToggle({
+    Name = "Прицел",
+    Flag = "Crosshair",
+    Default = _G.Settings.ShowCrosshair,
+    Callback = function(v)
+        _G.Settings.ShowCrosshair = v
+    end,
+});
 
-Library:CreateToggle(ESPTab, "Прогресс генераторов", _G.VDSettings.ESP.Objects.Generators.Progress, function(v)
-    _G.VDSettings.ESP.Objects.Generators.Progress = v
-end)
+VisCrosshair:AddDropdown({
+    Name = "Стиль",
+    Values = {"Classic", "Dot", "Circle", "Dot & Circle", "Tactical"},
+    Default = _G.Settings.CrosshairStyle,
+    Flag = "CrosshairStyle",
+    Callback = function(v)
+        _G.Settings.CrosshairStyle = v
+    end,
+});
 
-Library:CreateToggle(ESPTab, "Крюки", _G.VDSettings.ESP.Objects.Hooks.Enabled, function(v)
-    _G.VDSettings.ESP.Objects.Hooks.Enabled = v
-end)
+VisCrosshair:AddSlider({
+    Name = "Размер",
+    Min = 4,
+    Max = 30,
+    Default = _G.Settings.CrosshairSize,
+    Round = 0,
+    Flag = "CrosshairSize",
+    Callback = function(v)
+        _G.Settings.CrosshairSize = v
+    end,
+});
 
-Library:CreateToggle(ESPTab, "Паллеты", _G.VDSettings.ESP.Objects.Pallets.Enabled, function(v)
-    _G.VDSettings.ESP.Objects.Pallets.Enabled = v
-end)
+local VisCamera = VisualTab:DrawSection({ Name = "Камера", Position = 'left' });
 
-Library:CreateToggle(ESPTab, "Окна", _G.VDSettings.ESP.Objects.Windows.Enabled, function(v)
-    _G.VDSettings.ESP.Objects.Windows.Enabled = v
-end)
+VisCamera:AddToggle({
+    Name = "Режим от третьего лица",
+    Flag = "ThirdPersonKiller",
+    Default = _G.Settings.KillerThirdPerson,
+    Callback = function(v)
+        _G.Settings.KillerThirdPerson = v
+    end,
+});
 
-Library:CreateToggle(ESPTab, "Ворота", _G.VDSettings.ESP.Objects.Gates.Enabled, function(v)
-    _G.VDSettings.ESP.Objects.Gates.Enabled = v
-end)
+VisCamera:AddToggle({
+    Name = "Бесконечный зум",
+    Flag = "InfiniteZoom",
+    Default = _G.Settings.InfiniteZoom,
+    Callback = function(v)
+        _G.Settings.InfiniteZoom = v
+    end,
+});
 
-Library:CreateSection(ESPTab, "НАСТРОЙКИ")
-Library:CreateDropdown(ESPTab, "Стиль ESP", {
-    "Старый",
-    "Стандартный",
-    "Компактный",
-    "Минимальный",
-    "Подсветка"
-}, _G.VDSettings.ESP.Settings.Style, function(v)
-    _G.VDSettings.ESP.Settings.Style = v
-end)
+VisCamera:AddSlider({
+    Name = "FOV",
+    Min = 70,
+    Max = 160,
+    Default = _G.Settings.FOV,
+    Round = 0,
+    Flag = "FOV",
+    Callback = function(v)
+        _G.Settings.FOV = v
+        local cam = workspace.CurrentCamera
+        if cam then
+            cam.FieldOfView = v
+        end
+    end,
+});
 
-Library:CreateSlider(ESPTab, "Дальность", 100, 2000, _G.VDSettings.ESP.Settings.MaxDistance, "m", function(v)
-    _G.VDSettings.ESP.Settings.MaxDistance = v
-end)
+local VisNetwork = VisualTab:DrawSection({ Name = "Сеть", Position = 'right' });
 
-Library:CreateToggle(ESPTab, "Прозрачность по дистанции", _G.VDSettings.ESP.Settings.DistanceFade, function(v)
-    _G.VDSettings.ESP.Settings.DistanceFade = v
-end)
+VisNetwork:AddToggle({
+    Name = "Fake Lag",
+    Flag = "FakeLag",
+    Default = _G.Settings.FakeLag,
+    Callback = function(v)
+        _G.Settings.FakeLag = v
+    end,
+});
 
-Library:CreateToggle(ESPTab, "Трейсеры", _G.VDSettings.ESP.Settings.Tracers, function(v)
-    _G.VDSettings.ESP.Settings.Tracers = v
-end)
+VisNetwork:AddSlider({
+    Name = "Задержка Fake Lag",
+    Min = 50,
+    Max = 1000,
+    Default = _G.Settings.FakeLagMs,
+    Round = 0,
+    Flag = "FakeLagMs",
+    Callback = function(v)
+        _G.Settings.FakeLagMs = v
+    end,
+});
 
-Library:CreateSection(ESPTab, "ЦВЕТА")
-Library:CreateColorPicker(ESPTab, "Цвет убийцы", _G.VDSettings.ESP.Colors.Killer, function(v)
-    _G.VDSettings.ESP.Colors.Killer = v
-end)
+VisNetwork:AddToggle({
+    Name = "Desync",
+    Flag = "Desync",
+    Default = _G.Settings.Desync,
+    Callback = function(v)
+        _G.Settings.Desync = v
+    end,
+});
 
-Library:CreateColorPicker(ESPTab, "Выживший (здоров)", _G.VDSettings.ESP.Colors.SurvivorHealthy, function(v)
-    _G.VDSettings.ESP.Colors.SurvivorHealthy = v
-end)
+VisNetwork:AddToggle({
+    Name = "Призрак",
+    Flag = "Ghost",
+    Default = _G.Settings.EnableDesyncGhost,
+    Callback = function(v)
+        _G.Settings.EnableDesyncGhost = v
+    end,
+});
 
-Library:CreateColorPicker(ESPTab, "Выживший (ранен)", _G.VDSettings.ESP.Colors.SurvivorInjured, function(v)
-    _G.VDSettings.ESP.Colors.SurvivorInjured = v
-end)
+local VisFlashlight = VisualTab:DrawSection({ Name = "Фонарик", Position = 'left' });
 
-Library:CreateColorPicker(ESPTab, "Генераторы", _G.VDSettings.ESP.Colors.Generators, function(v)
-    _G.VDSettings.ESP.Colors.Generators = v
-end)
+VisFlashlight:AddDropdown({
+    Name = "Эффект",
+    Values = {"None", "Rainbow", "Strobe", "Ultra Bright"},
+    Default = _G.Settings.FlashlightEffect,
+    Flag = "FlashlightEffect",
+    Callback = function(v)
+        _G.Settings.FlashlightEffect = v
+    end,
+});
 
--- ==================== ВКЛАДКА FARM ====================
-Library:CreateSection(FarmTab, "АВТОФАРМ ВЫЖИВШЕГО")
-Library:CreateToggle(FarmTab, "Автофарм выжившего", _G.VDSettings.Farm.AutoSurvivor, function(v)
-    _G.VDSettings.Farm.AutoSurvivor = v
-end)
+-- ============================================
+-- Категория: Конфиги
+-- ============================================
 
-Library:CreateButton(FarmTab, "Мгновенный побег", function()
-    print("Instant escape!")
-end)
+Window:DrawCategory({ Name = "Конфиг" });
 
-Library:CreateSection(FarmTab, "СКИЛЛЧЕКИ")
-Library:CreateToggle(FarmTab, "Авто-скиллчек", _G.VDSettings.Farm.AutoSkillCheck, function(v)
-    _G.VDSettings.Farm.AutoSkillCheck = v
-end)
+local ConfigTab = Window:DrawTab({
+    Name = "Конфиг",
+    Icon = "folder",
+    Type = "Single",
+    EnableScrolling = true
+});
 
-Library:CreateDropdown(FarmTab, "Режим", {
-    "Perfect",
-    "Normal",
-    "Hybrid"
-}, _G.VDSettings.Farm.SkillCheckMode, function(v)
-    _G.VDSettings.Farm.SkillCheckMode = v
-end)
+local ConfigSection = ConfigTab:DrawSection({ Name = "Управление конфигами", Position = 'left' });
 
-Library:CreateSlider(FarmTab, "Шанс идеального", 0, 100, _G.VDSettings.Farm.PerfectChance, "%", function(v)
-    _G.VDSettings.Farm.PerfectChance = v
-end)
+ConfigSection:AddButton({
+    Name = "Сохранить конфиг",
+    Callback = function()
+        local success, err = pcall(function()
+            local json = game:GetService("HttpService"):JSONEncode(_G.Settings)
+            if writefile then
+                writefile("VD_6locc_Config.json", json)
+                print("Config saved!")
+            end
+        end)
+        if not success then
+            print("Error saving config: " .. tostring(err))
+        end
+    end,
+});
 
-Library:CreateToggle(FarmTab, "No Skill Checks", _G.VDSettings.Farm.NoSkillChecks, function(v)
-    _G.VDSettings.Farm.NoSkillChecks = v
-end)
+ConfigSection:AddButton({
+    Name = "Загрузить конфиг",
+    Callback = function()
+        local success, err = pcall(function()
+            if isfile and isfile("VD_6locc_Config.json") then
+                local json = readfile("VD_6locc_Config.json")
+                local data = game:GetService("HttpService"):JSONDecode(json)
+                for k, v in pairs(data) do
+                    _G.Settings[k] = v
+                end
+                print("Config loaded!")
+            end
+        end)
+        if not success then
+            print("Error loading config: " .. tostring(err))
+        end
+    end,
+});
 
-Library:CreateButton(FarmTab, "Бафф генератора", function()
-    print("Generator buff!")
-end)
+ConfigSection:AddButton({
+    Name = "Сбросить настройки",
+    Callback = function()
+        _G.Settings = nil
+        print("Settings reset! Reload script.")
+    end,
+});
 
--- ==================== ВКЛАДКА MODS ====================
-Library:CreateSection(ModTab, "ДВИЖЕНИЕ")
-Library:CreateToggle(ModTab, "Буст скорости", _G.VDSettings.Modifiers.SpeedBoost, function(v)
-    _G.VDSettings.Modifiers.SpeedBoost = v
-end)
+ConfigSection:AddButton({
+    Name = "Выгрузить скрипт",
+    Callback = function()
+        Window:Destroy()
+        print("Script unloaded!")
+    end,
+});
 
-Library:CreateSlider(ModTab, "Множитель", 1, 3, _G.VDSettings.Modifiers.SpeedMultiplier, "x", function(v)
-    _G.VDSettings.Modifiers.SpeedMultiplier = v
-end)
+-- ============================================
+--  ЗАПУСК ЛОГИКИ (фоновые потоки)
+-- ============================================
 
-Library:CreateToggle(ModTab, "Авто-лунная походка", _G.VDSettings.Modifiers.AutoMoonwalk, function(v)
-    _G.VDSettings.Modifiers.AutoMoonwalk = v
-end)
-
-Library:CreateSection(ModTab, "ЛЕЧЕНИЕ")
-Library:CreateToggle(ModTab, "Мгновенное лечение", _G.VDSettings.Modifiers.InstantHeal, function(v)
-    _G.VDSettings.Modifiers.InstantHeal = v
-end)
-
-Library:CreateButton(ModTab, "Мгновенная перевязка", function()
-    print("Instant bandage!")
-end)
-
-Library:CreateSection(ModTab, "ПАЛЛЕТЫ И ОКНА")
-Library:CreateButton(ModTab, "Сбросить все паллеты", function()
-    print("Dropping pallets...")
-end)
-
-Library:CreateButton(ModTab, "Блокировка окон", function()
-    print("Blocking windows...")
-end)
-
--- ==================== ВКЛАДКА COMBAT ====================
-Library:CreateSection(CombatTab, "АВТОПАРРИ")
-Library:CreateToggle(CombatTab, "Автопарри", _G.VDSettings.Combat.AutoParry, function(v)
-    _G.VDSettings.Combat.AutoParry = v
-end)
-
-Library:CreateSlider(CombatTab, "Дальность", 6, 25, _G.VDSettings.Combat.ParryRange, "m", function(v)
-    _G.VDSettings.Combat.ParryRange = v
-end)
-
-Library:CreateDropdown(CombatTab, "Задержка", {
-    "Instant",
-    "50ms",
-    "100ms",
-    "150ms",
-    "200ms"
-}, _G.VDSettings.Combat.ParryDelay, function(v)
-    _G.VDSettings.Combat.ParryDelay = v
-end)
-
-Library:CreateSection(CombatTab, "АИМБОТ")
-Library:CreateToggle(CombatTab, "Общий аимбот", _G.VDSettings.Combat.GeneralAimbot, function(v)
-    _G.VDSettings.Combat.GeneralAimbot = v
-end)
-
-Library:CreateSlider(CombatTab, "FOV радиус", 50, 500, _G.VDSettings.Combat.AimbotFOV, "px", function(v)
-    _G.VDSettings.Combat.AimbotFOV = v
-end)
-
-Library:CreateSection(CombatTab, "МАСКИРОВАННЫЕ")
-Library:CreateButton(CombatTab, "Richter - Скрытность", function()
-    print("Richter activated")
-end)
-
-Library:CreateButton(CombatTab, "Alex - Бензопила", function()
-    print("Alex activated")
-end)
-
-Library:CreateButton(CombatTab, "Brandon - Скорость", function()
-    print("Brandon activated")
-end)
-
--- ==================== ВКЛАДКА VISUAL ====================
-Library:CreateSection(VisualTab, "ГРАФИКА")
-Library:CreateToggle(VisualTab, "RTX Graphics", _G.VDSettings.Visuals.RTX, function(v)
-    _G.VDSettings.Visuals.RTX = v
-end)
-
-Library:CreateToggle(VisualTab, "Full Bright", _G.VDSettings.Visuals.FullBright, function(v)
-    _G.VDSettings.Visuals.FullBright = v
-    
-    if v then
-        game:GetService("Lighting").Brightness = 2
-        game:GetService("Lighting").ClockTime = 14
-        game:GetService("Lighting").FogEnd = 100000
-    else
-        game:GetService("Lighting").Brightness = 1
-        game:GetService("Lighting").ClockTime = 12
-        game:GetService("Lighting").FogEnd = 100
-    end
-end)
-
-Library:CreateToggle(VisualTab, "No Fog", _G.VDSettings.Visuals.NoFog, function(v)
-    _G.VDSettings.Visuals.NoFog = v
-    
-    if v then
-        game:GetService("Lighting").FogEnd = 100000
-    else
-        game:GetService("Lighting").FogEnd = 100
-    end
-end)
-
-Library:CreateSection(VisualTab, "ПРИЦЕЛ")
-Library:CreateToggle(VisualTab, "Прицел", _G.VDSettings.Visuals.Crosshair, function(v)
-    _G.VDSettings.Visuals.Crosshair = v
-end)
-
--- ==================== ВКЛАДКА CONFIG ====================
-Library:CreateSection(ConfigTab, "СТАТУС")
-Library:CreateLabel(ConfigTab, _G.VDSettings.Config.Premium and "✓ ПРЕМИУМ" or "✗ FREE")
-
-Library:CreateSection(ConfigTab, "УПРАВЛЕНИЕ")
-Library:CreateButton(ConfigTab, "Сохранить конфиг", function()
-    if writefile then
-        local json = HttpService:JSONEncode(_G.VDSettings)
-        writefile("VDHub_Config.json", json)
-        print("✓ Saved")
-    end
-end)
-
-Library:CreateButton(ConfigTab, "Загрузить конфиг", function()
-    if readfile and isfile and isfile("VDHub_Config.json") then
-        local json = readfile("VDHub_Config.json")
-        _G.VDSettings = HttpService:JSONDecode(json)
-        print("✓ Loaded")
-    end
-end)
-
-Library:CreateButton(ConfigTab, "Сброс настроек", function()
-    _G.VDSettings = nil
-    print("✓ Reset")
-end)
-
-Library:CreateButton(ConfigTab, "Выгрузить скрипт", function()
-    ScreenGui:Destroy()
-end)
-
--- Делаем GUI перетаскиваемым
-Utility:MakeDraggable(Main, TopBar)
-
--- Открытие первой вкладки
-Library:SelectTab(ESPTab)
-
--- Анимация появления
-Main.Size = UDim2.new(0, 0, 0, 0)
-Utility:Tween(Main, {Size = UDim2.new(0, 360, 0, 480)}, 0.4, Enum.EasingStyle.Back)
-
--- Управление видимостью
-local MenuVisible = true
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == _G.VDSettings.Config.MenuKey then
-        MenuVisible = not MenuVisible
-        ScreenGui.Enabled = MenuVisible
-    end
-end)
-
--- Уведомление
 task.spawn(function()
-    local Notif = Instance.new("Frame")
-    Notif.AnchorPoint = Vector2.new(0.5, 0)
-    Notif.Position = UDim2.new(0.5, 0, 0, -50)
-    Notif.Size = UDim2.new(0, 280, 0, 45)
-    Notif.BackgroundColor3 = Theme.Card
-    Notif.BorderSizePixel = 0
-    Notif.Parent = ScreenGui
-    Utility:Corner(Notif, 8)
-    Utility:Stroke(Notif, Theme.Primary, 1)
-
-    local NotifText = Instance.new("TextLabel")
-    NotifText.Size = UDim2.new(1, 0, 1, 0)
-    NotifText.BackgroundTransparency = 1
-    NotifText.Text = "✓ Violence District Hub v4.0"
-    NotifText.TextColor3 = Theme.Primary
-    NotifText.Font = Enum.Font.GothamBold
-    NotifText.TextSize = 12
-    NotifText.Parent = Notif
-
-    Utility:Tween(Notif, {Position = UDim2.new(0.5, 0, 0, 15)}, 0.4)
-    task.wait(3)
-    Utility:Tween(Notif, {Position = UDim2.new(0.5, 0, 0, -50)}, 0.4)
-    task.wait(0.4)
-    Notif:Destroy()
+    while true do
+        task.wait(0.5)
+        
+        -- ESP Logic
+        if _G.Settings.MasterESP then
+            -- Killer ESP
+            if _G.Settings.KillerESP.Enabled then
+                for _, player in ipairs(game.Players:GetPlayers()) do
+                    if player ~= game.Players.LocalPlayer then
+                        local team = player.Team
+                        if team and team.Name == "Killer" then
+                            local char = player.Character
+                            if char then
+                                local highlight = char:FindFirstChild("Highlight")
+                                if not highlight then
+                                    highlight = Instance.new("Highlight")
+                                    highlight.Name = "Highlight"
+                                    highlight.Parent = char
+                                end
+                                highlight.FillColor = _G.Settings.ESPColors.Killer
+                                highlight.FillTransparency = 0.6
+                                highlight.Enabled = true
+                            end
+                        end
+                    end
+                end
+            end
+            
+            -- Survivor ESP
+            if _G.Settings.SurvivorESP.Enabled then
+                for _, player in ipairs(game.Players:GetPlayers()) do
+                    if player ~= game.Players.LocalPlayer then
+                        local team = player.Team
+                        if team and team.Name == "Survivors" then
+                            local char = player.Character
+                            if char then
+                                local highlight = char:FindFirstChild("Highlight")
+                                if not highlight then
+                                    highlight = Instance.new("Highlight")
+                                    highlight.Name = "Highlight"
+                                    highlight.Parent = char
+                                end
+                                highlight.FillColor = _G.Settings.ESPColors.SurvivorHealthy
+                                highlight.FillTransparency = 0.6
+                                highlight.Enabled = true
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Speed Boost Logic
+        if _G.Settings.SpeedBoostEnabled then
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum.WalkSpeed = 16 * _G.Settings.SpeedBoost
+                end
+            end
+        end
+        
+        -- Auto Moonwalk Logic
+        if _G.Settings.AutoMoonwalk then
+            local char = game.Players.LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            local cam = workspace.CurrentCamera
+            if hum and root and cam then
+                hum.AutoRotate = false
+                local look = cam.CFrame.LookVector
+                local angle = math.atan2(look.X, look.Z)
+                local time = tick()
+                local sway = math.sin(time * _G.Settings.MoonwalkSwaySpeed) * _G.Settings.MoonwalkSwayAmplitude
+                local shake = (math.random() - 0.5) * _G.Settings.MoonwalkShaking
+                local newAngle = angle + sway + shake
+                root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, newAngle, 0)
+            end
+        end
+        
+        -- Rainbow Character Logic
+        if _G.Settings.RainbowCharacter then
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local hue = tick() % 4 / 4
+                local color = Color3.fromHSV(hue, 1, 1)
+                if _G.Settings.RainbowCharacterMode == "Highlight" then
+                    local hl = char:FindFirstChild("RainbowHL")
+                    if not hl then
+                        hl = Instance.new("Highlight")
+                        hl.Name = "RainbowHL"
+                        hl.Parent = char
+                    end
+                    hl.FillColor = color
+                    hl.FillTransparency = 0.4
+                    hl.Enabled = true
+                else
+                    for _, part in ipairs(char:GetChildren()) do
+                        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                            part.Color = color
+                            if _G.Settings.RainbowCharacterMode == "ForceField" then
+                                part.Material = Enum.Material.ForceField
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Noclip Logic
+        if _G.Settings.NoclipVaultsPallets then
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end
+        
+        -- No Fog Logic
+        if _G.Settings.NoFog then
+            local lighting = game:GetService("Lighting")
+            lighting.FogStart = 999999
+            lighting.FogEnd = 999999
+        end
+        
+        -- Full Bright Logic
+        if _G.Settings.FullBright then
+            local lighting = game:GetService("Lighting")
+            lighting.Brightness = 2
+            lighting.ClockTime = 14
+            lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+            lighting.GlobalShadows = false
+        end
+        
+        -- Auto Farm Survivor Logic
+        if _G.Settings.AutoFarmSurvivor then
+            local char = game.Players.LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then
+                local nearest = nil
+                local dist = math.huge
+                for _, gen in ipairs(workspace:GetDescendants()) do
+                    if gen.Name == "Generator" then
+                        local pos = gen:IsA("Model") and gen:GetPivot and gen:GetPivot().Position or gen.Position
+                        if pos then
+                            local d = (pos - root.Position).Magnitude
+                            if d < dist and d < 50 then
+                                dist = d
+                                nearest = gen
+                            end
+                        end
+                    end
+                end
+                if nearest then
+                    root.CFrame = CFrame.new(nearest:GetPivot().Position + Vector3.new(0, 3, 0))
+                    task.wait(0.1)
+                    local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+                    if remotes then
+                        local genRemote = remotes:FindFirstChild("Generator")
+                        if genRemote then
+                            local repEvent = genRemote:FindFirstChild("RepairEvent")
+                            if repEvent then
+                                repEvent:FireServer(nearest, true)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Instant Heal Logic
+        if _G.Settings.InstantHeal then
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum and hum.Health < hum.MaxHealth then
+                    hum.Health = hum.MaxHealth
+                end
+            end
+        end
+    end
 end)
 
-print("Violence District Hub v4.0 loaded!")
-print("Press K to toggle menu")
+-- ============================================
+--  ОБРАБОТЧИК КЛАВИШ
+-- ============================================
+
+local UserInputService = game:GetService("UserInputService")
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    local key = input.KeyCode
+    if not key then return end
+    
+    local binds = _G.Settings.Keybinds
+    
+    if key == Enum.KeyCode[binds.ToggleUI] then
+        if Window.Visible then
+            Window:Hide()
+        else
+            Window:Show()
+        end
+    end
+    
+    if key == Enum.KeyCode[binds.ToggleSpeedBoost] then
+        _G.Settings.SpeedBoostEnabled = not _G.Settings.SpeedBoostEnabled
+    end
+    
+    if key == Enum.KeyCode[binds.AutoMoonwalk] then
+        _G.Settings.AutoMoonwalk = not _G.Settings.AutoMoonwalk
+    end
+    
+    if key == Enum.KeyCode[binds.AutoSkillCheck] then
+        _G.Settings.AutoSkillCheck = not _G.Settings.AutoSkillCheck
+    end
+    
+    if key == Enum.KeyCode[binds.InstantHeal] then
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.Health = hum.MaxHealth
+            end
+        end
+    end
+end)
+
+print("6locc VD Hub loaded! Press " .. _G.Settings.Keybinds.ToggleUI .. " to open menu.")
